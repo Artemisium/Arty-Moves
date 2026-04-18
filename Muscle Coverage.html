@@ -1,0 +1,320 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>Arty-Moves · Muscle Coverage</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #060608; color: #d0d0d4; font-family: 'DM Mono', monospace; min-height: 100vh; }
+
+  /* Nav */
+  .hub-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 999; height: 36px; background: #060608; border-bottom: 1px solid #2a2a30; display: flex; align-items: center; padding: 0 24px; gap: 16px; }
+  .hub-nav a { font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; text-decoration: none; color: #8af0c0; font-family: 'DM Mono', monospace; }
+  .hub-nav .current { color: #78787e; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; }
+  .hub-nav .sep { color: #2a2a30; }
+
+  .page { max-width: 960px; margin: 0 auto; padding: 72px 24px 80px; }
+
+  .eyebrow { font-size: 9px; letter-spacing: 2.5px; text-transform: uppercase; color: #48484e; margin-bottom: 10px; }
+  h1 { font-family: 'Space Mono', monospace; font-size: 26px; font-weight: 400; color: #d0d0d4; margin-bottom: 8px; }
+  .subtitle { font-size: 11px; color: #78787e; line-height: 1.7; max-width: 700px; margin-bottom: 28px; }
+
+  /* Source chips */
+  .workouts { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px; }
+  .wchip { padding: 10px 14px; border: 1px solid #2a2a30; flex: 1; min-width: 180px; }
+  .wchip .wl { font-size: 12px; color: #d0d0d4; margin-bottom: 4px; }
+  .wchip .we { font-size: 9px; color: #48484e; line-height: 1.7; }
+
+  /* Summary totals */
+  .totals { display: flex; gap: 8px; margin-bottom: 28px; flex-wrap: wrap; }
+  .tc { padding: 8px 14px; border: 1px solid; flex: 1; }
+  .tc .tn { font-family: 'Space Mono', monospace; font-size: 18px; }
+  .tc .tl { font-size: 8px; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 3px; }
+
+  /* Legend */
+  .legend { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 18px; }
+  .li { display: flex; align-items: center; gap: 6px; font-size: 9px; color: #78787e; letter-spacing: 1px; text-transform: uppercase; }
+  .ls { width: 24px; height: 6px; border-radius: 1px; }
+
+  /* Zone guide */
+  .zones { display: flex; gap: 0; margin-bottom: 28px; border: 1px solid #2a2a30; overflow: hidden; }
+  .zone { flex: 1; padding: 6px 10px; border-right: 1px solid #2a2a30; text-align: center; }
+  .zone:last-child { border-right: none; }
+  .zone .zl { font-size: 8px; letter-spacing: 1px; text-transform: uppercase; }
+  .zone .zv { font-size: 9px; color: #78787e; margin-top: 2px; }
+
+  /* Section */
+  .section { margin-top: 24px; }
+  .section-label { font-size: 8px; letter-spacing: 2px; text-transform: uppercase; color: #48484e; padding-bottom: 6px; border-bottom: 1px solid #2a2a30; margin-bottom: 3px; }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; }
+  tr { border-bottom: 1px solid #0f0f14; }
+  tr:hover { background: #0c0c10; }
+  .col-name { width: 190px; padding: 9px 0; vertical-align: middle; }
+  .col-bar  { padding: 9px 0 9px 0; vertical-align: middle; }
+  .col-pct  { width: 70px; padding: 9px 0 9px 8px; text-align: right; vertical-align: middle; font-family: 'Space Mono', monospace; font-size: 12px; }
+  .col-badge { width: 76px; padding: 9px 0; text-align: right; vertical-align: middle; }
+
+  .mname { font-size: 12px; color: #d0d0d4; }
+  .msub  { font-size: 9px; color: #48484e; margin-top: 1px; }
+
+  /* Stacked bar */
+  .bar-outer {
+    position: relative; height: 18px; background: #0c0c10;
+    border: 1px solid #1e1e26;
+  }
+  /* MEV line at 100% = left + (100/MAX_PCT * 100)% of bar width */
+  .mev-line {
+    position: absolute; top: 0; bottom: 0; width: 1px;
+    background: #3a3a44; z-index: 5; pointer-events: none;
+  }
+  .bar-stack { position: absolute; left: 0; top: 0; height: 100%; display: flex; }
+  .seg { height: 100%; transition: width 0.8s cubic-bezier(0.22,1,0.36,1); }
+
+  /* Zone color on right border */
+  .bar-outer::after {
+    content: '';
+    position: absolute; right: 0; top: 0; bottom: 0; width: 2px;
+  }
+
+  /* Badge */
+  .badge { display: inline-block; font-size: 7px; letter-spacing: 1.2px; text-transform: uppercase; padding: 2px 5px; border: 1px solid; white-space: nowrap; }
+  .b-str { color: #f08a8a; border-color: #f08a8a44; }
+  .b-hyrox { color: #f0e68a; border-color: #f0e68a44; }
+  .b-acc  { color: #48484e; border-color: #2a2a30; }
+
+  /* Notes */
+  .note-card { padding: 12px 14px; border: 1px solid; margin-bottom: 6px; }
+  .note-card.warn { border-color: #f0e68a33; border-left: 2px solid #f0e68a; }
+  .note-card.info { border-color: #8ac8f055; border-left: 2px solid #8ac8f0; }
+  .note-card h3 { font-size: 10px; color: #d0d0d4; font-weight: 400; margin-bottom: 5px; }
+  .note-card p  { font-size: 9px; color: #78787e; line-height: 1.6; }
+  .note-card .pct { font-family: 'Space Mono', monospace; font-size: 14px; margin-bottom: 5px; }
+</style>
+</head>
+<body>
+<nav class="hub-nav">
+  <a href="Arty-Moves Hub.html">← Hub</a>
+  <span class="sep">|</span>
+  <a href="Arty-Moves Preview.html">Strength Tracker</a>
+  <span class="sep">|</span>
+  <span class="current">Muscle Analysis</span>
+</nav>
+<div class="page" id="app"></div>
+
+<script>
+// ── Data ────────────────────────────────────────────────────────────────────
+const MAX_PCT = 260; // scale, bars fill proportionally up to this
+const MEV = 10;
+
+const MUSCLES = [
+  { name:"Hip Flexors",    sub:"Iliopsoas, Rectus Femoris", group:"Legs & Glutes", strength:12.5, run:10.0, bike:0.8, priority:"hyrox" },
+  { name:"Calves",         sub:"Gastrocnemius, Soleus",     group:"Legs & Glutes", strength:5.4,  run:14.0, bike:1.0, priority:"hyrox" },
+  { name:"Glutes",         sub:"Gluteus Maximus",           group:"Legs & Glutes", strength:15.0, run:3.5,  bike:1.0, priority:"str" },
+  { name:"Quadriceps",     sub:"Rectus Femoris, Vasti",     group:"Legs & Glutes", strength:13.5, run:3.5,  bike:1.5, priority:"str" },
+  { name:"Glute Med",      sub:"Gluteus Medius, Abductors", group:"Legs & Glutes", strength:7.0,  run:10.0, bike:0,   priority:"hyrox" },
+  { name:"Hamstrings",     sub:"Biceps Femoris, Semi-",     group:"Legs & Glutes", strength:9.5,  run:3.5,  bike:0.8, priority:"str" },
+  { name:"Tibialis",       sub:"Tibialis Anterior, Shins",  group:"Legs & Glutes", strength:0.0,  run:10.0, bike:0,   priority:"hyrox" },
+  { name:"Obliques",       sub:"Internal + External",       group:"Core",          strength:17.1, run:0,    bike:0,   priority:"str" },
+  { name:"Rectus Abs",     sub:"Rectus Abdominis, TVA",     group:"Core",          strength:12.3, run:0,    bike:0,   priority:"str" },
+  { name:"Mid Traps",      sub:"Mid/Lower Trap, Rhomboids", group:"Back",          strength:11.0, run:0,    bike:0,   priority:"str" },
+  { name:"Lat. Delts",     sub:"Lateral Deltoid Head",      group:"Shoulders & Chest", strength:8.0,  run:0, bike:0,  priority:"hyrox" },
+  { name:"Erectors",       sub:"Erector Spinae, Multifidus",group:"Back",          strength:10.1, run:0.4,  bike:0,   priority:"str" },
+  { name:"Ant. Delts",     sub:"Anterior Deltoid Head",     group:"Shoulders & Chest", strength:10.1, run:0, bike:0,  priority:"str" },
+  { name:"Pectorals",      sub:"Pec Major (clavicular+sternal)", group:"Shoulders & Chest", strength:9.0, run:0, bike:0, priority:"str" },
+  { name:"Forearms",       sub:"Flexors, Extensors, Grip",  group:"Arms",          strength:9.0,  run:0,    bike:0,   priority:"hyrox" },
+  { name:"Mid Traps copy", sub:"", group:"", strength:0, run:0, bike:0, priority:"str" }, // placeholder - remove
+  { name:"Upper Traps",    sub:"Upper Trap, Levator",       group:"Back",          strength:8.5,  run:0,    bike:0,   priority:"acc" },
+  { name:"Lats",           sub:"Latissimus Dorsi, Teres Major", group:"Back",      strength:8.0,  run:0,    bike:0,   priority:"str" },
+  { name:"Triceps",        sub:"Triceps Brachii",           group:"Arms",          strength:7.0,  run:0,    bike:0,   priority:"str" },
+  { name:"Rear Delts",     sub:"Posterior Delt, Infraspinatus", group:"Shoulders & Chest", strength:7.0, run:0, bike:0, priority:"str" },
+  { name:"Biceps",         sub:"Biceps Brachii, Brachialis",group:"Arms",          strength:4.5,  run:0,    bike:0,   priority:"str" },
+];
+
+// Remove placeholder
+const DATA = MUSCLES.filter(m => m.name !== "Mid Traps copy");
+
+// Compute totals and pct
+DATA.forEach(m => {
+  m.total = m.strength + m.run + m.bike;
+  m.pct = Math.round(m.total / MEV * 100);
+});
+
+// Sort by pct desc within group
+const GROUPS = ["Legs & Glutes","Core","Back","Shoulders & Chest","Arms"];
+
+function zoneColor(pct) {
+  if (pct < 40)   return "#f08a8a";
+  if (pct < 70)   return "#f0e68a";
+  if (pct <= 130) return "#8af0c0";
+  if (pct <= 200) return "#f0b88a";
+  return "#f08a8a";
+}
+function zoneLabel(pct) {
+  if (pct < 40)   return "Gap";
+  if (pct < 70)   return "Low";
+  if (pct <= 130) return "Optimal";
+  if (pct <= 200) return "High";
+  return "Very High";
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────
+const app = document.getElementById("app");
+
+// Header
+app.innerHTML = `
+  <div class="eyebrow">Artemisium / Arty-Moves · Base Phase · All sources</div>
+  <h1>Weekly Muscle Load</h1>
+  <p class="subtitle">
+    Effective weekly stimulus (ES) per muscle from all training sources combined —
+    strength sessions, running volume, and Zwift Z2 bike.
+    Bars show stacked contributions per source. MEV reference line at 100% (10 ES/week).
+    Above the line = well above minimum; below = consider adding volume.
+    No cap applied — bars show true total load so you can spot anything excessive.
+  </p>
+`;
+
+// Source legend
+app.innerHTML += `
+  <div class="workouts">
+    <div class="wchip" style="border-left:2px solid #8af0c0">
+      <div class="wl">💪 Strength training</div>
+      <div class="we">D1 Pull & Carry (Tue) · D2 Push & Squat (Thu) · ABC accessories · warmup additions</div>
+    </div>
+    <div class="wchip" style="border-left:2px solid #f0b88a">
+      <div class="wl">🏃 Running</div>
+      <div class="we">Easy run ×2 (Mon+Wed, 5-6km each) · Long run ×1 (Sun, 10→28km build)</div>
+    </div>
+    <div class="wchip" style="border-left:2px solid #8ac8f0">
+      <div class="wl">🚴 Zwift Z2 bike</div>
+      <div class="we">1×/week Friday · 60-75 min · 180-200W · HR &lt;150</div>
+    </div>
+  </div>
+`;
+
+// Summary
+const total = DATA.length;
+const optimal = DATA.filter(m => m.pct >= 70 && m.pct <= 130).length;
+const high     = DATA.filter(m => m.pct > 130 && m.pct <= 200).length;
+const vhigh    = DATA.filter(m => m.pct > 200).length;
+const low      = DATA.filter(m => m.pct >= 40 && m.pct < 70).length;
+const gap      = DATA.filter(m => m.pct < 40).length;
+const avg      = Math.round(DATA.reduce((a,m) => a+m.pct,0)/total);
+
+app.innerHTML += `
+  <div class="totals">
+    <div class="tc" style="border-color:#8af0c055"><div class="tn" style="color:#8af0c0">${optimal}</div><div class="tl" style="color:#8af0c088">Optimal 70–130%</div></div>
+    <div class="tc" style="border-color:#f0b88a55"><div class="tn" style="color:#f0b88a">${high}</div><div class="tl" style="color:#f0b88a88">High 130–200%</div></div>
+    <div class="tc" style="border-color:#f08a8a55"><div class="tn" style="color:#f08a8a">${vhigh}</div><div class="tl" style="color:#f08a8a88">Very High >200%</div></div>
+    <div class="tc" style="border-color:#f0e68a55"><div class="tn" style="color:#f0e68a">${low}</div><div class="tl" style="color:#f0e68a88">Low 40–70%</div></div>
+    <div class="tc" style="border-color:#2a2a30"><div class="tn" style="color:#d0d0d4">${avg}%</div><div class="tl" style="color:#48484e">Avg load</div></div>
+  </div>
+`;
+
+// Zone guide
+app.innerHTML += `
+  <div class="zones">
+    <div class="zone"><div class="zl" style="color:#f08a8a">Gap</div><div class="zv">&lt;40%</div></div>
+    <div class="zone"><div class="zl" style="color:#f0e68a">Low</div><div class="zv">40–70%</div></div>
+    <div class="zone"><div class="zl" style="color:#8af0c0">Optimal</div><div class="zv">70–130%</div></div>
+    <div class="zone" style="background:#f0b88a08"><div class="zl" style="color:#f0b88a">High</div><div class="zv">130–200%</div></div>
+    <div class="zone" style="background:#f08a8a08"><div class="zl" style="color:#f08a8a">Very High</div><div class="zv">&gt;200%</div></div>
+  </div>
+`;
+
+// Source legend
+app.innerHTML += `
+  <div class="legend">
+    <div class="li"><span class="ls" style="background:#8af0c044;border:1px solid #8af0c0"></span>Strength</div>
+    <div class="li"><span class="ls" style="background:#f0b88a44;border:1px solid #f0b88a"></span>Running</div>
+    <div class="li"><span class="ls" style="background:#8ac8f044;border:1px solid #8ac8f0"></span>Bike</div>
+    <div class="li"><span class="ls" style="background:none;border:1px solid #3a3a44;width:1px;height:12px"></span>MEV (100%)</div>
+    <div class="li" style="margin-left:auto;color:#48484e">Scaled to 260% max · ← source contribution</div>
+  </div>
+`;
+
+// Tables per group
+const mevLineLeft = (100 / MAX_PCT * 100).toFixed(2); // % position for MEV line
+
+GROUPS.forEach(group => {
+  const muscles = DATA.filter(m => m.group === group).sort((a,b) => b.pct - a.pct);
+  if (!muscles.length) return;
+
+  let rows = "";
+  muscles.forEach(m => {
+    const col = zoneColor(m.pct);
+    const zone = zoneLabel(m.pct);
+    const strW  = (m.strength / MEV / (MAX_PCT/100) * 100).toFixed(2);
+    const runW  = (m.run      / MEV / (MAX_PCT/100) * 100).toFixed(2);
+    const bikeW = (m.bike     / MEV / (MAX_PCT/100) * 100).toFixed(2);
+    const badge = m.priority === "str" ? `<span class="badge b-str">Strength</span>` :
+                  m.priority === "hyrox" ? `<span class="badge b-hyrox">Hyrox</span>` :
+                  `<span class="badge b-acc">Accessory</span>`;
+    rows += `
+      <tr>
+        <td class="col-name">
+          <div class="mname">${m.name}</div>
+          <div class="msub">${m.sub}</div>
+        </td>
+        <td class="col-bar">
+          <div class="bar-outer" id="bar-${m.name.replace(/[^a-z]/gi,'_')}">
+            <div class="mev-line" style="left:${mevLineLeft}%"></div>
+            <div class="bar-stack">
+              <div class="seg" style="background:#8af0c033;border-right:1px solid #8af0c066;width:0" data-w="${strW}"></div>
+              <div class="seg" style="background:#f0b88a33;border-right:1px solid #f0b88a66;width:0" data-w="${runW}"></div>
+              <div class="seg" style="background:#8ac8f033;border-right:1px solid #8ac8f066;width:0" data-w="${bikeW}"></div>
+            </div>
+            <span style="position:absolute;right:5px;top:0;bottom:0;display:flex;align-items:center;font-size:8px;color:${col};font-family:'DM Mono',monospace;letter-spacing:1px">${zone}</span>
+          </div>
+        </td>
+        <td class="col-pct" style="color:${col}">${m.pct}%</td>
+        <td class="col-badge">${badge}</td>
+      </tr>`;
+  });
+
+  app.innerHTML += `
+    <div class="section">
+      <div class="section-label">${group}</div>
+      <table><tbody>${rows}</tbody></table>
+    </div>`;
+});
+
+// Notes on high-load muscles
+app.innerHTML += `
+  <div style="margin-top:36px">
+    <div class="section-label" style="margin-bottom:12px">High-load muscles — watch for recovery signals</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <div class="note-card warn">
+        <div class="pct" style="color:#f08a8a">233% Hip Flexors</div>
+        <h3>Monitor for anterior hip tightness</h3>
+        <p>12.5 ES from strength (leg raises, lunges, ABC-C) + 10 from running. If hip flexors feel chronically tight, reduce C-block frequency or cut kneeling HF raises from warmup temporarily.</p>
+      </div>
+      <div class="note-card warn">
+        <div class="pct" style="color:#f08a8a">204% Calves</div>
+        <h3>Watch for Achilles / soleus tightness</h3>
+        <p>14 ES from running alone (long run is the main driver). Direct calf raises add 3 ES. If calves get chronically tight, reduce calf raise sets from 3 to 2 before cutting run volume.</p>
+      </div>
+      <div class="note-card warn">
+        <div class="pct" style="color:#f0b88a">195% Glutes</div>
+        <h3>High but appropriate for Hyrox goals</h3>
+        <p>15 ES strength (DL, squat, lunges, sled) + 3.5 running. This is intentional. No action needed unless glutes feel chronically fatigued or soreness impairs squat depth.</p>
+      </div>
+    </div>
+    <div class="note-card info" style="margin-top:8px">
+      <div class="pct" style="color:#8ac8f0">45% Biceps — only remaining low zone</div>
+      <p>Chin-ups (primary) + row (secondary) give 4.5 ES. This is sufficient for strength purposes — direct bicep work adds minimal strength transfer. No action needed unless arm aesthetics are a goal.</p>
+    </div>
+  </div>
+`;
+
+// Animate bars on load
+setTimeout(() => {
+  document.querySelectorAll('.seg[data-w]').forEach(el => {
+    el.style.width = el.dataset.w + '%';
+  });
+}, 80);
+</script>
+</body>
+</html>

@@ -1,0 +1,809 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>Arty-Moves</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #060608; color: #d0d0d4; font-family: 'DM Mono', monospace; min-height: 100vh; }
+  body::-webkit-scrollbar { width: 0; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  .fade { animation: fadeIn 0.25s ease forwards; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel">
+const { useState, useMemo, useEffect, useRef } = React;
+
+const C = {
+  bg: "#060608", surface: "#0c0c10", border: "#2a2a30", borderLight: "#3a3a42",
+  accent: "#8af0c0", green: "#8af0c0", yellow: "#f0e68a", blue: "#8ac8f0",
+  purple: "#c8a0f0", red: "#f08a8a", orange: "#f0b88a",
+  text: "#d0d0d4", textMid: "#78787e", textDim: "#48484e",
+};
+
+const RACES = [
+  { name: "Hyrox Singles Open Toronto", date: new Date("2026-10-04"), priority: "A", color: C.accent },
+  { name: "Toronto Waterfront Marathon",  date: new Date("2026-10-18"), priority: "B", color: C.blue },
+];
+
+const WEEK = [
+  { day: "Mon", label: "Monday",    type: "run",      color: C.green,   icon: "🏃",  session: "Easy Run",      target: "5–6 km · HR <150",         abc: "C",  duration: "30–40 min",  detail: "Zone 2 aerobic base. Conversational pace. Run fresh — no lifting yesterday.", sub: "Anti-extension core (C) post-run or evening" },
+  { day: "Tue", label: "Tuesday",   type: "strength", color: C.purple,  icon: "💪",  session: "D1 · Pull & Carry", target: "DL 5×5 @ 315 + 6 more", abc: "—",  duration: "75–85 min", detail: "Deadlift leads. Posterior chain + core gap-plugs. Hyrox finishers at end.", sub: "Sled Pull + Farmers Carry (2 sets each)" },
+  { day: "Wed", label: "Wednesday", type: "run",      color: C.green,   icon: "🏃",  session: "Easy Run",      target: "5–6 km · HR <150",         abc: "B",  duration: "30–40 min",  detail: "Second aerobic session. HR cap is non-negotiable. Walk if needed to stay sub-150.", sub: "Anti-lateral flexion (B) post-run or evening" },
+  { day: "Thu", label: "Thursday",  type: "strength", color: C.purple,  icon: "🏋️", session: "D2 · Push & Squat", target: "BP 4×5 @ 135 + 5 more", abc: "—",  duration: "75–85 min", detail: "Bench is priority — goes first while fresh. Squat second. Rear delts + calves at end.", sub: "Sled Push + Wall Balls (2 sets each)" },
+  { day: "Fri", label: "Friday",    type: "bike",     color: C.blue,    icon: "🚴",  session: "Zwift Z2 Ride", target: "180–200 W · HR <150",      abc: "A",  duration: "60–75 min",  detail: "Cross-train recovery. Legs move, system aerobic, no pounding. Step-ups + glute med after.", sub: "Hip flexor + Glute Med (A) — clears before Sunday" },
+  { day: "Sat", label: "Saturday",  type: "flex",     color: C.textMid, icon: "🧗",  session: "Flex",          target: "Climb / rest / light spin", abc: "B*", duration: "—",          detail: "Auto-regulated. If climbing, skip B block. If resting, do B. If beat up, full rest.", sub: "B block only if resting (not climbing)" },
+  { day: "Sun", label: "Sunday",    type: "longrun",  color: C.orange,  icon: "🏃",  session: "Long Run",      target: "10→28 km build · HR <150", abc: "C*", duration: "60–180 min", detail: "Solo first km then join friends for 8 km. Longest run of the week. HR cap strict — walk to stay aerobic.", sub: "C block optional — skip if wiped from long run" },
+];
+
+const PRINCIPLES = [
+  { text: "Running is priority — placed on fresh legs Mon / Wed / Sun.", color: C.green },
+  { text: "Push strength = priority lift — bench goes first on D2 while fresh.", color: C.purple },
+  { text: "HR 150 cap on all aerobic work. Non-negotiable.", color: C.red },
+  { text: "Long run drives marathon prep + fixes Hyrox run limiter simultaneously.", color: C.orange },
+  { text: "If HRV drops or sleep sub-6h → cut Fri bike or shorten Sun long run first.", color: C.blue },
+  { text: "ABC = 4-5 slots/week. A×1, B×2, C×2. Skip any if HRV is low.", color: C.yellow },
+];
+
+// Long run build: 9 weeks, 10→28km. Deloads at W4 and W8.
+const LONG_RUN_BUILD = [
+  { week: 1, km: 10 }, { week: 2, km: 12 }, { week: 3, km: 15 }, { week: 4, km: 10, deload: true },
+  { week: 5, km: 18 }, { week: 6, km: 20 }, { week: 7, km: 23 }, { week: 8, km: 15, deload: true },
+  { week: 9, km: 28, peak: true },
+];
+
+const WEEKLY_VOL = [
+  { week: 1, km: 21 }, { week: 2, km: 24 }, { week: 3, km: 28 }, { week: 4, km: 21, deload: true },
+  { week: 5, km: 30 }, { week: 6, km: 33 }, { week: 7, km: 36 }, { week: 8, km: 24, deload: true },
+  { week: 9, km: 40, peak: true },
+];
+
+const TABS = [
+  { id: "strength",  label: "Strength",      icon: "🏋️" },
+  { id: "runs",      label: "Runs / Cardio", icon: "🏃" },
+  { id: "weekly",    label: "Weekly Overview",icon: "📅" },
+  { id: "analysis",  label: "Muscle Analysis",icon: "📊" },
+  { id: "rundev",    label: "Run Development",icon: "📈" },
+];
+
+// ─── Shared primitives ───────────────────────────────────────────────────────
+const mono = (size, color, extra = {}) => ({
+  fontFamily: "'DM Mono', monospace", fontSize: size, color, ...extra,
+});
+const space = (size, color, extra = {}) => ({
+  fontFamily: "'Space Mono', monospace", fontSize: size, color, ...extra,
+});
+
+function Eyebrow({ children }) {
+  return <p style={mono(8, C.textDim, { letterSpacing: 2, textTransform: "uppercase", marginBottom: 6 })}>{children}</p>;
+}
+function SectionLabel({ children, style = {} }) {
+  return <p style={{ ...mono(8, C.textDim, { letterSpacing: 2, textTransform: "uppercase" }), borderBottom: `1px solid ${C.border}`, paddingBottom: 6, marginBottom: 12, ...style }}>{children}</p>;
+}
+function Pill({ children, color = C.accent, active, onClick, small }) {
+  const sz = small ? 9 : 10;
+  return (
+    <button onClick={onClick} style={{
+      padding: small ? "3px 8px" : "5px 12px", border: `1px solid ${active ? color : C.border}`,
+      background: active ? `${color}15` : "transparent", cursor: "pointer",
+      ...mono(sz, active ? color : C.textDim, { textTransform: "uppercase", letterSpacing: 1.5 }),
+    }}>{children}</button>
+  );
+}
+function MiniBar({ pct, color }) {
+  const [w, setW] = useState(0);
+  useEffect(() => { const t = setTimeout(() => setW(pct), 60); return () => clearTimeout(t); }, [pct]);
+  return (
+    <div style={{ height: 10, background: C.surface, border: `1px solid ${C.border}`, position: "relative", overflow: "hidden" }}>
+      <div style={{ height: "100%", width: `${w}%`, background: `${color}44`, borderRight: `2px solid ${color}`, transition: "width 0.7s cubic-bezier(0.22,1,0.36,1)" }} />
+      <span style={{ position: "absolute", right: 4, top: 0, bottom: 0, display: "flex", alignItems: "center", ...space(8, color) }}>{pct}%</span>
+    </div>
+  );
+}
+
+// ─── Countdown strip ─────────────────────────────────────────────────────────
+function CountdownStrip() {
+  const now = new Date();
+  return (
+    <div style={{ display: "flex", gap: 1, marginBottom: 24 }}>
+      {RACES.map((r, i) => {
+        const days = Math.ceil((r.date - now) / 86400000);
+        return (
+          <div key={i} style={{
+            flex: 1, padding: "10px 14px",
+            border: `1px solid ${r.color}33`, borderLeft: `2px solid ${r.color}`,
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+          }}>
+            <div>
+              <p style={mono(10, r.color, { marginBottom: 2 })}>{r.name}</p>
+              <p style={mono(8, C.textDim)}>{r.date.toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" })} · {r.priority} Race</p>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <p style={space(20, r.color, { lineHeight: 1 })}>{days}</p>
+              <p style={mono(8, C.textDim)}>days</p>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── WEEKLY OVERVIEW ─────────────────────────────────────────────────────────
+function WeeklyOverview() {
+  const [selected, setSelected] = useState(null);
+  const typeColor = { run: C.green, strength: C.purple, bike: C.blue, flex: C.textMid, longrun: C.orange };
+  const abcColor = { "A": C.yellow, "B": C.orange, "C": C.accent };
+
+  return (
+    <div>
+      <CountdownStrip />
+
+      {/* Day cards */}
+      <SectionLabel>Week at a glance — Base Phase</SectionLabel>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 4, marginBottom: 24 }}>
+        {WEEK.map((d, i) => {
+          const color = typeColor[d.type] || C.textMid;
+          const isSelected = selected === i;
+          return (
+            <button key={i} onClick={() => setSelected(isSelected ? null : i)} style={{
+              padding: "12px 8px", border: `1px solid ${isSelected ? color : C.border}`,
+              borderTop: `2px solid ${color}`, background: isSelected ? `${color}0d` : "transparent",
+              cursor: "pointer", textAlign: "center", display: "flex", flexDirection: "column", gap: 6, alignItems: "center",
+            }}>
+              <span style={mono(9, C.textDim, { letterSpacing: 1 })}>{d.day}</span>
+              <span style={{ fontSize: 18 }}>{d.icon}</span>
+              <span style={mono(8, color, { letterSpacing: 0.5, lineHeight: 1.4 })}>{d.session}</span>
+              {d.abc !== "—" && (
+                <span style={{
+                  ...mono(8, abcColor[d.abc.replace("*","")] || C.textDim),
+                  border: `1px solid ${abcColor[d.abc.replace("*","")] || C.border}44`,
+                  padding: "1px 5px", letterSpacing: 1,
+                }}>ABC {d.abc}</span>
+              )}
+              <span style={mono(8, C.textDim)}>{d.duration}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Expanded detail */}
+      {selected !== null && (
+        <div className="fade" style={{
+          padding: 16, border: `1px solid ${typeColor[WEEK[selected].type]}33`,
+          borderLeft: `2px solid ${typeColor[WEEK[selected].type]}`, marginBottom: 24,
+        }}>
+          <p style={space(13, typeColor[WEEK[selected].type], { marginBottom: 6 })}>
+            {WEEK[selected].icon} {WEEK[selected].session} — {WEEK[selected].label}
+          </p>
+          <p style={mono(11, C.textMid, { marginBottom: 8, lineHeight: 1.6 })}>{WEEK[selected].target}</p>
+          <p style={mono(10, C.text, { lineHeight: 1.7, marginBottom: 8 })}>{WEEK[selected].detail}</p>
+          <p style={mono(9, C.textDim, { lineHeight: 1.6 })}>{WEEK[selected].sub}</p>
+        </div>
+      )}
+
+      {/* Load summary */}
+      <SectionLabel>Weekly training load</SectionLabel>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 4, marginBottom: 24 }}>
+        {[
+          { label: "Run Volume", value: "20–40 km", sub: "builds week-on-week", color: C.green },
+          { label: "Strength", value: "2 sessions", sub: "Tue D1 · Thu D2", color: C.purple },
+          { label: "Z2 Cross-train", value: "60–75 min", sub: "Fri Zwift · 180-200W", color: C.blue },
+          { label: "ABC Accessory", value: "4–5 slots", sub: "A×1 B×2 C×2/week", color: C.yellow },
+        ].map((c, i) => (
+          <div key={i} style={{ padding: "12px 14px", border: `1px solid ${c.color}33`, borderLeft: `2px solid ${c.color}` }}>
+            <p style={mono(8, C.textDim, { textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 6 })}>{c.label}</p>
+            <p style={space(16, c.color, { lineHeight: 1, marginBottom: 4 })}>{c.value}</p>
+            <p style={mono(9, C.textDim)}>{c.sub}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Base principles */}
+      <SectionLabel>Base phase principles</SectionLabel>
+      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        {PRINCIPLES.map((p, i) => (
+          <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "8px 12px", border: `1px solid ${C.border}`, borderLeft: `2px solid ${p.color}44` }}>
+            <span style={mono(9, p.color, { letterSpacing: 0.5, flexShrink: 0, marginTop: 1 })}>→</span>
+            <p style={mono(10, C.textMid, { lineHeight: 1.6 })}>{p.text}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── STRENGTH ────────────────────────────────────────────────────────────────
+const D1 = {
+  label: "D1 · Pull & Carry", day: "Tuesday", color: C.blue,
+  exercises: [
+    { name: "Deadlift", sets: "4×3→5×5", weight: "315 lbs", tier: "compound", note: "Ramp 135→225→275" },
+    { name: "Overhead Press", sets: "4×5→7", weight: "95 lbs", tier: "compound", note: "" },
+    { name: "Barbell Row", sets: "3×6→8", weight: "135 lbs", tier: "accessory", note: "" },
+    { name: "Walking Lunges", sets: "3×10→14/leg", weight: "2×24 kg", tier: "accessory", note: "" },
+    { name: "Hanging Leg Raises", sets: "3×8→12", weight: "BW", tier: "core", note: "Knee-tuck if <8 straight" },
+    { name: "Pallof Press", sets: "3×8→12/side", weight: "Band", tier: "core", note: "2 s pause" },
+    { name: "Suitcase Carry", sets: "2×30→40m/side", weight: "24 kg KB", tier: "core", note: "Stand tall" },
+  ],
+  finishers: ["Sled Pull — 153 kg · 12.5m · 2 sets", "Farmers Carry — 2×32 kg · 50m · 2 sets"],
+};
+const D2 = {
+  label: "D2 · Push & Squat", day: "Thursday", color: C.purple,
+  exercises: [
+    { name: "Bench Press", sets: "4×5 / 4×3 / 3×5", weight: "135→155 lbs", tier: "compound", note: "Ramp 65→95→135" },
+    { name: "Back Squat", sets: "4×3→5", weight: "225 lbs", tier: "compound", note: "Ramp 135→185" },
+    { name: "Weighted Chin-ups", sets: "3×5→7", weight: "+20 lbs", tier: "accessory", note: "" },
+    { name: "Weighted Dips", sets: "3×8→10", weight: "+20 lbs", tier: "accessory", note: "" },
+    { name: "Face Pulls", sets: "3×12→15", weight: "Light cable", tier: "accessory", note: "" },
+    { name: "Standing Calf Raises", sets: "3×15→20", weight: "50 lb DB", tier: "accessory", note: "1 s pause at top" },
+  ],
+  finishers: ["Sled Push — 202 kg · 12.5m · 2 sets", "Wall Balls — 9 kg · 25 reps · 2 sets"],
+};
+const ABC = [
+  { id: "A", label: "Hip flexor + Glute Med", freq: "1×/week (Fri)", color: C.yellow, exes: ["DB Step-ups 3×8/side", "Single-leg Glute Bridge 3×12/side", "Cossack Squat 3×6/side"], goal: "Running stride driver" },
+  { id: "B", label: "Anti-lateral flexion", freq: "2×/week (Wed + Sat)", color: C.orange, exes: ["Copenhagen Plank 3×20-30s/side", "DB Suitcase Hold 3×40s/side"], goal: "Obliques + unilateral stability" },
+  { id: "C", label: "Anti-extension core", freq: "2×/week (Mon + Sun)", color: C.accent, exes: ["Dead Bug 3×10/side", "DB Pullover + Hollow 3×30s", "Hollow Body Hold 3×30s"], goal: "Lumbar control + bracing" },
+];
+
+function WorkoutCard({ w }) {
+  const tierColor = { compound: C.accent, accessory: C.yellow, core: C.green };
+  return (
+    <div style={{ border: `1px solid ${C.border}`, borderLeft: `2px solid ${w.color}`, marginBottom: 12 }}>
+      <div style={{ padding: "12px 14px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between" }}>
+        <div>
+          <p style={space(14, C.text)}>{w.label}</p>
+          <p style={mono(9, C.textDim, { marginTop: 2 })}>{w.day}</p>
+        </div>
+        <p style={mono(9, w.color, { border: `1px solid ${w.color}33`, padding: "1px 8px", alignSelf: "flex-start" })}>BLOCK 1</p>
+      </div>
+      <div style={{ padding: "10px 14px" }}>
+        {w.exercises.map((ex, i) => (
+          <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: i < w.exercises.length - 1 ? `1px solid ${C.border}` : "none" }}>
+            <div style={{ flex: 1 }}>
+              <span style={mono(12, C.text)}>{ex.name}</span>
+              {ex.note && <span style={mono(9, C.textDim, { marginLeft: 8 })}>{ex.note}</span>}
+            </div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <span style={space(11, C.textMid)}>{ex.sets}</span>
+              <span style={mono(10, C.text)}>{ex.weight}</span>
+              <span style={{ ...mono(7, tierColor[ex.tier] || C.textDim), border: `1px solid ${(tierColor[ex.tier] || C.textDim)}33`, padding: "0 4px", letterSpacing: 1, textTransform: "uppercase" }}>{ex.tier}</span>
+            </div>
+          </div>
+        ))}
+        <div style={{ marginTop: 10, padding: "8px 10px", background: `${C.orange}0a`, border: `1px solid ${C.orange}22` }}>
+          <p style={mono(8, C.textDim, { letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 5 })}>Hyrox Finishers</p>
+          {w.finishers.map((f, i) => <p key={i} style={mono(10, C.orange, { lineHeight: 1.7 })}>{f}</p>)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── CLIMBING TRACKER ────────────────────────────────────────────────────────
+const TR_GRADES = ["5.8","5.9","5.10a","5.10b","5.10c","5.10d","5.11a","5.11b","5.11c","5.11d","5.12a","5.12b","5.12c","5.12d","5.13a","5.13b","5.13c"];
+const BOULDER_GRADES = ["V0","V1","V2","V3","V4","V5","V6","V7","V8","V9","V10","V11","V12"];
+const SEND_TYPES = [
+  { id:"flash",    label:"Flash",    icon:"⚡", sub:"First try, no beta" },
+  { id:"send",     label:"Send",     icon:"✓",  sub:"Completed" },
+  { id:"redpoint", label:"Redpoint", icon:"♦",  sub:"After working it" },
+  { id:"attempt",  label:"Attempt",  icon:"○",  sub:"Didn't top out" },
+];
+
+function fmtDate(d) {
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,"0"), day=String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+}
+
+function ClimbingTracker() {
+  const [mode, setMode]   = useState("topRope");
+  const [grade, setGrade] = useState(null);
+  const [type, setType]   = useState("send");
+  const [notes, setNotes] = useState("");
+  const [date, setDate]   = useState(fmtDate(new Date()));
+  const [view, setView]   = useState("log");
+  const [logs, setLogs]   = useState(() => {
+    try { return JSON.parse(localStorage.getItem("arty-climb-logs") || "[]"); } catch { return []; }
+  });
+
+  const grades = mode === "topRope" ? TR_GRADES : BOULDER_GRADES;
+  const modeLogs = logs.filter(l => l.mode === mode);
+  const modeColor = mode === "topRope" ? C.blue : C.orange;
+
+  function doLog() {
+    if (!grade) return;
+    const entry = { id: Date.now(), date, mode, grade, type, notes, ts: Date.now() };
+    const next = [entry, ...logs];
+    setLogs(next);
+    localStorage.setItem("arty-climb-logs", JSON.stringify(next));
+    setNotes("");
+  }
+  function remove(id) {
+    const next = logs.filter(l => l.id !== id);
+    setLogs(next);
+    localStorage.setItem("arty-climb-logs", JSON.stringify(next));
+  }
+
+  // Stats
+  const sends = modeLogs.filter(l => l.type !== "attempt");
+  const gradeOrder = grades;
+  const gradeCount = {};
+  sends.forEach(s => { gradeCount[s.grade] = (gradeCount[s.grade] || 0) + 1; });
+  const pb = gradeOrder.slice().reverse().find(g => gradeCount[g]);
+  const maxCount = Math.max(1, ...Object.values(gradeCount));
+
+  return (
+    <div>
+      {/* Mode + view toggle */}
+      <div style={{ display:"flex", gap:4, marginBottom:20, alignItems:"center" }}>
+        <button onClick={() => setMode("topRope")} style={{ padding:"6px 14px", border:`1px solid ${mode==="topRope"?C.blue:C.border}`, background:mode==="topRope"?`${C.blue}15`:"transparent", cursor:"pointer", ...mono(10, mode==="topRope"?C.blue:C.textDim, {letterSpacing:1.5,textTransform:"uppercase"}) }}>Top Rope</button>
+        <button onClick={() => setMode("bouldering")} style={{ padding:"6px 14px", border:`1px solid ${mode==="bouldering"?C.orange:C.border}`, background:mode==="bouldering"?`${C.orange}15`:"transparent", cursor:"pointer", ...mono(10, mode==="bouldering"?C.orange:C.textDim, {letterSpacing:1.5,textTransform:"uppercase"}) }}>Bouldering</button>
+        <div style={{flex:1}} />
+        {["log","history","stats"].map(v => (
+          <button key={v} onClick={() => setView(v)} style={{ padding:"4px 10px", border:`1px solid ${view===v?C.accent:C.border}`, background:view===v?`${C.accent}15`:"transparent", cursor:"pointer", ...mono(9, view===v?C.accent:C.textDim, {letterSpacing:1,textTransform:"uppercase"}) }}>{v}</button>
+        ))}
+      </div>
+
+      {/* LOG view */}
+      {view === "log" && (
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 320px", gap:20 }}>
+          <div>
+            <SectionLabel>Grade — {mode==="topRope"?"Top Rope":"Bouldering"}</SectionLabel>
+            <div style={{ display:"flex", flexWrap:"wrap", gap:4, marginBottom:20 }}>
+              {grades.map(g => {
+                const sel = grade === g;
+                return (
+                  <button key={g} onClick={() => setGrade(g)} style={{
+                    padding:"5px 10px", border:`1px solid ${sel?modeColor:C.border}`,
+                    background:sel?`${modeColor}18`:"transparent", cursor:"pointer",
+                    ...mono(11, sel?modeColor:C.textMid),
+                  }}>{g}</button>
+                );
+              })}
+            </div>
+            <SectionLabel>Result</SectionLabel>
+            <div style={{ display:"flex", gap:4, marginBottom:20 }}>
+              {SEND_TYPES.map(t => (
+                <button key={t.id} onClick={() => setType(t.id)} style={{
+                  flex:1, padding:"10px 6px", border:`1px solid ${type===t.id?C.accent:C.border}`,
+                  background:type===t.id?`${C.accent}10`:"transparent", cursor:"pointer", textAlign:"center",
+                }}>
+                  <div style={space(16, type===t.id?C.accent:C.textMid)}>{t.icon}</div>
+                  <div style={mono(9, type===t.id?C.accent:C.textDim, {marginTop:3,letterSpacing:1})}>{t.label}</div>
+                  <div style={mono(8, C.textDim, {marginTop:1})}>{t.sub}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <SectionLabel>Session</SectionLabel>
+            <div style={{ padding:"12px 14px", border:`1px solid ${C.border}`, marginBottom:12 }}>
+              <p style={mono(8, C.textDim, {textTransform:"uppercase",letterSpacing:1.5,marginBottom:6})}>Date</p>
+              <input type="date" value={date} onChange={e=>setDate(e.target.value)} style={{ width:"100%", background:C.surface, border:`1px solid ${C.border}`, padding:"6px 8px", ...mono(11, C.text), outline:"none", marginBottom:12 }} />
+              <p style={mono(8, C.textDim, {textTransform:"uppercase",letterSpacing:1.5,marginBottom:6})}>Notes</p>
+              <input value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Beta, conditions, feelings..." style={{ width:"100%", background:C.surface, border:`1px solid ${C.border}`, padding:"6px 8px", ...mono(11, C.text), outline:"none" }} />
+            </div>
+
+            {/* Selected state */}
+            {grade && (
+              <div style={{ padding:"12px 14px", border:`1px solid ${modeColor}33`, borderLeft:`2px solid ${modeColor}`, marginBottom:12 }}>
+                <p style={mono(8, C.textDim, {textTransform:"uppercase",letterSpacing:1.5,marginBottom:4})}>Ready to log</p>
+                <p style={space(22, modeColor)}>{grade}</p>
+                <p style={mono(10, C.textMid)}>{SEND_TYPES.find(t=>t.id===type)?.icon} {SEND_TYPES.find(t=>t.id===type)?.label}</p>
+              </div>
+            )}
+
+            <button onClick={doLog} disabled={!grade} style={{
+              width:"100%", padding:"12px",
+              border:`1px solid ${grade?C.accent:C.border}`,
+              background:grade?`${C.accent}15`:"transparent",
+              cursor:grade?"pointer":"default",
+              ...space(12, grade?C.accent:C.textDim, {letterSpacing:1}),
+            }}>
+              {grade?`Log ${grade} ${SEND_TYPES.find(t=>t.id===type)?.label} →`:"Select a grade first"}
+            </button>
+
+            {/* Recent 5 */}
+            {modeLogs.length > 0 && (
+              <div style={{marginTop:16}}>
+                <SectionLabel>Recent</SectionLabel>
+                {modeLogs.slice(0,6).map(l => (
+                  <div key={l.id} style={{ display:"flex", alignItems:"center", gap:8, padding:"6px 0", borderBottom:`1px solid ${C.border}` }}>
+                    <span style={mono(9, C.textDim, {flexShrink:0})}>{l.date}</span>
+                    <span style={space(12, l.type==="attempt"?C.textDim:modeColor, {width:52,flexShrink:0})}>{l.grade}</span>
+                    <span style={mono(8, C.textDim, {flex:1})}>{SEND_TYPES.find(t=>t.id===l.type)?.icon} {l.type}</span>
+                    {l.notes && <span style={mono(8, C.textDim, {maxWidth:80,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"})}>{l.notes}</span>}
+                    <button onClick={()=>remove(l.id)} style={{background:"none",border:"none",cursor:"pointer",...mono(11,C.red),flexShrink:0}}>×</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* HISTORY view */}
+      {view === "history" && (
+        <div>
+          {modeLogs.length === 0
+            ? <p style={mono(11, C.textDim, {padding:"32px 0", textAlign:"center"})}>No {mode==="topRope"?"top rope":"bouldering"} sessions logged yet.</p>
+            : modeLogs.map(l => (
+              <div key={l.id} style={{ display:"flex", gap:12, alignItems:"center", padding:"9px 0", borderBottom:`1px solid ${C.border}` }}>
+                <span style={mono(10, C.textDim, {width:90,flexShrink:0})}>{l.date}</span>
+                <span style={space(14, l.type==="attempt"?C.textDim:modeColor, {width:60,flexShrink:0})}>{l.grade}</span>
+                <span style={mono(9, C.textDim, {width:80,flexShrink:0,textTransform:"uppercase",letterSpacing:1})}>{SEND_TYPES.find(t=>t.id===l.type)?.icon} {l.type}</span>
+                <span style={mono(9, C.textDim, {flex:1})}>{l.notes}</span>
+                <button onClick={()=>remove(l.id)} style={{background:"none",border:"none",cursor:"pointer",...mono(11,C.red),padding:"0 4px"}}>×</button>
+              </div>
+            ))
+          }
+        </div>
+      )}
+
+      {/* STATS view */}
+      {view === "stats" && (
+        <div>
+          {pb && (
+            <div style={{ marginBottom:20, padding:"14px 16px", border:`1px solid ${modeColor}33`, borderLeft:`2px solid ${modeColor}` }}>
+              <p style={mono(8, C.textDim, {textTransform:"uppercase",letterSpacing:2,marginBottom:6})}>Personal Best — {mode==="topRope"?"Top Rope":"Bouldering"}</p>
+              <p style={space(32, modeColor)}>{pb}</p>
+              <p style={mono(9, C.textDim, {marginTop:4})}>{sends.length} total sends · {modeLogs.filter(l=>l.type==="attempt").length} attempts</p>
+            </div>
+          )}
+          <SectionLabel>Grade distribution — sends only</SectionLabel>
+          {gradeOrder.filter(g => gradeCount[g]).length === 0
+            ? <p style={mono(10, C.textDim, {padding:"16px 0"})}>No sends logged yet.</p>
+            : gradeOrder.filter(g => gradeCount[g]).map(g => (
+              <div key={g} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:5 }}>
+                <span style={mono(11, C.textMid, {width:48,flexShrink:0})}>{g}</span>
+                <div style={{flex:1, height:14, background:C.surface, border:`1px solid ${C.border}`, position:"relative"}}>
+                  <div style={{height:"100%", width:`${Math.round((gradeCount[g]/maxCount)*100)}%`, background:`${modeColor}44`, borderRight:`2px solid ${modeColor}`, transition:"width 0.5s ease"}} />
+                </div>
+                <span style={space(11, modeColor, {width:20,flexShrink:0})}>{gradeCount[g]}</span>
+              </div>
+            ))
+          }
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Strength() {
+  const [subTab, setSubTab] = useState("workouts");
+  return (
+    <div className="fade">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div>
+          <Eyebrow>Base Phase · Block 1 · 4-week microcycle</Eyebrow>
+          <p style={space(18, C.text)}>Strength Program</p>
+        </div>
+        <a href="Arty-Moves Preview.html" style={{
+          padding: "8px 16px", border: `1px solid ${C.accent}`, background: `${C.accent}15`,
+          textDecoration: "none", ...mono(10, C.accent, { letterSpacing: 1, textTransform: "uppercase" }),
+        }}>Open Workout Tracker →</a>
+      </div>
+      <div style={{ display:"flex", gap:4, marginBottom:20 }}>
+        <Pill active={subTab==="workouts"} color={C.purple} onClick={() => setSubTab("workouts")}>Workouts</Pill>
+        <Pill active={subTab==="climbing"} color={C.blue} onClick={() => setSubTab("climbing")}>🧗 Climbing</Pill>
+      </div>
+
+      {subTab === "workouts" && (
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 24 }}>
+            <WorkoutCard w={D1} />
+            <WorkoutCard w={D2} />
+          </div>
+          <SectionLabel>A / B / C Home Accessory — 8-10 min slots</SectionLabel>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
+            {ABC.map(a => (
+              <div key={a.id} style={{ padding: "12px 14px", border: `1px solid ${a.color}33`, borderLeft: `2px solid ${a.color}` }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+                  <p style={space(13, a.color)}>{a.id}: {a.label}</p>
+                  <p style={mono(9, C.textDim)}>{a.freq}</p>
+                </div>
+                <p style={mono(9, C.textMid, { marginBottom: 8, fontStyle: "italic" })}>Goal: {a.goal}</p>
+                {a.exes.map((e, i) => <p key={i} style={mono(10, C.text, { lineHeight: 1.7 })}>· {e}</p>)}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+      {subTab === "climbing" && <ClimbingTracker />}
+    </div>
+  );
+}
+
+// ─── RUNS / CARDIO ────────────────────────────────────────────────────────────
+const RUN_SESSIONS = [
+  { day: "Mon", type: "Easy Run", color: C.green, freq: "1×/week", target: "5–6 km", hr: "HR < 150 bpm", duration: "30–40 min", detail: "First run of the week on fresh legs. Conversational pace. If HR creeps up, slow down or walk. No ego.", abc: "C block — anti-extension core" },
+  { day: "Wed", type: "Easy Run", color: C.green, freq: "1×/week", target: "5–6 km", hr: "HR < 150 bpm", duration: "30–40 min", detail: "Mid-week aerobic maintenance. Placed after D1 strength (Tue) so legs are recovering but still moving.", abc: "B block — anti-lateral flexion" },
+  { day: "Sun", type: "Long Run", color: C.orange, freq: "1×/week", target: "10→28 km build", hr: "HR < 150 bpm", duration: "60–180 min", detail: "Main aerobic development driver. Solo first km to settle in, then join friends group for the bulk. Strict HR cap — walk to stay aerobic.", abc: "C block optional (skip if wiped)" },
+  { day: "Fri", type: "Zwift Z2 Ride", color: C.blue, freq: "1×/week", target: "180–200 W", hr: "HR < 150 bpm", duration: "60–75 min", detail: "Active recovery cross-training. Legs spin without impact stress. Builds aerobic base between run days. Cut this first if fatigued.", abc: "A block — hip flexor + glute med (before ride)" },
+];
+
+const HR_ZONES = [
+  { zone: "Z1", name: "Recovery", range: "<130 bpm", color: C.textMid, note: "Warm-up, cool-down" },
+  { zone: "Z2", name: "Aerobic Base", range: "130–150 bpm", color: C.green, note: "All base phase runs — the money zone" },
+  { zone: "Z3", name: "Tempo", range: "150–165 bpm", color: C.yellow, note: "Build phase only — not yet" },
+  { zone: "Z4", name: "Threshold", range: "165–178 bpm", color: C.orange, note: "Peak phase only" },
+  { zone: "Z5", name: "Max",  range: ">178 bpm", color: C.red, note: "Race efforts only" },
+];
+
+function Runs() {
+  return (
+    <div className="fade">
+      <div style={{ marginBottom: 24 }}>
+        <Eyebrow>Base Phase · 9 weeks remaining</Eyebrow>
+        <p style={space(18, C.text)}>Runs & Cardio</p>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 28 }}>
+        {RUN_SESSIONS.map((s, i) => (
+          <div key={i} style={{ padding: "14px 16px", border: `1px solid ${s.color}33`, borderLeft: `2px solid ${s.color}` }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+              <p style={space(13, s.color)}>{s.day} · {s.type}</p>
+              <p style={mono(9, C.textDim)}>{s.freq}</p>
+            </div>
+            <div style={{ display: "flex", gap: 16, marginBottom: 10 }}>
+              <div><p style={mono(8, C.textDim, { textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 2 })}>Distance</p><p style={space(14, C.text)}>{s.target}</p></div>
+              <div><p style={mono(8, C.textDim, { textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 2 })}>Heart Rate</p><p style={space(14, s.color)}>{s.hr}</p></div>
+              <div><p style={mono(8, C.textDim, { textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 2 })}>Duration</p><p style={space(14, C.text)}>{s.duration}</p></div>
+            </div>
+            <p style={mono(10, C.textMid, { lineHeight: 1.6, marginBottom: 8 })}>{s.detail}</p>
+            <p style={mono(9, C.textDim)}>ABC → {s.abc}</p>
+          </div>
+        ))}
+      </div>
+      <SectionLabel>Heart Rate Zones — base phase target</SectionLabel>
+      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        {HR_ZONES.map((z, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", border: `1px solid ${z.zone === "Z2" ? z.color + "44" : C.border}`, background: z.zone === "Z2" ? `${z.color}08` : "transparent" }}>
+            <span style={space(13, z.color, { width: 24, flexShrink: 0 })}>{z.zone}</span>
+            <span style={mono(10, C.text, { width: 120, flexShrink: 0 })}>{z.name}</span>
+            <span style={space(11, z.color, { width: 110, flexShrink: 0 })}>{z.range}</span>
+            <span style={mono(9, C.textDim)}>{z.note}</span>
+            {z.zone === "Z2" && <span style={{ ...mono(8, z.color), border: `1px solid ${z.color}44`, padding: "1px 6px", letterSpacing: 1, marginLeft: "auto" }}>TARGET</span>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── MUSCLE ANALYSIS ─────────────────────────────────────────────────────────
+const COVERAGE_SUMMARY = [
+  { name: "Quadriceps",   pct: 100, group: "Legs" },
+  { name: "Glutes",       pct: 100, group: "Legs" },
+  { name: "Hamstrings",   pct: 95,  group: "Legs" },
+  { name: "Hip Flexors",  pct: 100, group: "Legs" },
+  { name: "Calves",       pct: 54,  group: "Legs" },
+  { name: "Glute Med",    pct: 30,  group: "Legs" },
+  { name: "Erectors",     pct: 100, group: "Back" },
+  { name: "Lats",         pct: 80,  group: "Back" },
+  { name: "Mid Traps",    pct: 100, group: "Back" },
+  { name: "Upper Traps",  pct: 65,  group: "Back" },
+  { name: "Rear Delts",   pct: 70,  group: "Back" },
+  { name: "Ant. Delts",   pct: 95,  group: "Shoulders" },
+  { name: "Pectorals",    pct: 90,  group: "Shoulders" },
+  { name: "Lat. Delts",   pct: 80,  group: "Shoulders" },
+  { name: "Triceps",      pct: 70,  group: "Arms" },
+  { name: "Biceps",       pct: 45,  group: "Arms" },
+  { name: "Forearms",     pct: 90,  group: "Arms" },
+  { name: "Rectus Abs",   pct: 100, group: "Core" },
+  { name: "Obliques",     pct: 100, group: "Core" },
+];
+
+function Analysis() {
+  const well = COVERAGE_SUMMARY.filter(m => m.pct >= 70).length;
+  const mod  = COVERAGE_SUMMARY.filter(m => m.pct >= 40 && m.pct < 70).length;
+  const gap  = COVERAGE_SUMMARY.filter(m => m.pct < 40).length;
+  const avg  = Math.round(COVERAGE_SUMMARY.reduce((a, m) => a + m.pct, 0) / COVERAGE_SUMMARY.length);
+  const groups = [...new Set(COVERAGE_SUMMARY.map(m => m.group))];
+
+  function color(pct) { return pct >= 70 ? C.green : pct >= 40 ? C.yellow : C.red; }
+
+  return (
+    <div className="fade">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+        <div>
+          <Eyebrow>Base Phase · Full week inc. ABC accessories</Eyebrow>
+          <p style={space(18, C.text)}>Muscle Group Analysis</p>
+        </div>
+        <a href="Muscle Coverage.html" style={{
+          padding: "8px 16px", border: `1px solid ${C.accent}`, background: `${C.accent}15`,
+          textDecoration: "none", ...mono(10, C.accent, { letterSpacing: 1, textTransform: "uppercase" }),
+        }}>Full Analysis →</a>
+      </div>
+      <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
+        {[
+          { n: `${well}/19`, l: "Well covered ≥70%", c: C.green },
+          { n: `${mod}/19`,  l: "Moderate 40-69%",   c: C.yellow },
+          { n: `${gap}/19`,  l: "Gaps <40%",          c: C.red },
+          { n: `${avg}%`,    l: "Avg coverage",       c: C.text },
+        ].map((chip, i) => (
+          <div key={i} style={{ flex: 1, padding: "10px 14px", border: `1px solid ${chip.c}44` }}>
+            <p style={space(18, chip.c)}>{chip.n}</p>
+            <p style={mono(8, C.textDim, { textTransform: "uppercase", letterSpacing: 1.5, marginTop: 4 })}>{chip.l}</p>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        {groups.map(g => (
+          <div key={g}>
+            <SectionLabel>{g}</SectionLabel>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {COVERAGE_SUMMARY.filter(m => m.group === g).map((m, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={mono(10, C.textMid, { width: 96, flexShrink: 0 })}>{m.name}</span>
+                  <div style={{ flex: 1 }}><MiniBar pct={m.pct} color={color(m.pct)} /></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{ marginTop: 20, padding: "10px 14px", border: `1px solid ${C.yellow}33`, borderLeft: `2px solid ${C.yellow}`, background: `${C.yellow}08` }}>
+        <p style={mono(10, C.yellow, { marginBottom: 4 })}>Only remaining gap: Glute Medius (30%)</p>
+        <p style={mono(9, C.textMid, { lineHeight: 1.6 })}>A block only runs 1×/week. Add to D1 warmup or bump A to 2×/week to close. Lateral band walks, clamshells, or additional step-ups are all low-fatigue options.</p>
+      </div>
+    </div>
+  );
+}
+
+// ─── RUN DEVELOPMENT ─────────────────────────────────────────────────────────
+function RunDev() {
+  const maxKm = 28;
+  const RACES_RUN = [
+    { name: "Hyrox Toronto", date: new Date("2026-10-04"), note: "Run station target: 1 km × 8 in ~5:00/km splits", color: C.accent },
+    { name: "Waterfront Marathon", date: new Date("2026-10-18"), note: "Target: sub-4:00 · ~5:40/km pace", color: C.blue },
+  ];
+
+  return (
+    <div className="fade">
+      <div style={{ marginBottom: 24 }}>
+        <Eyebrow>Base Phase → Build → Peak · 9 weeks</Eyebrow>
+        <p style={space(18, C.text)}>Run Development</p>
+      </div>
+
+      {/* Race targets */}
+      <SectionLabel>Race run targets</SectionLabel>
+      <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
+        {RACES_RUN.map((r, i) => (
+          <div key={i} style={{ flex: 1, padding: "12px 14px", border: `1px solid ${r.color}33`, borderLeft: `2px solid ${r.color}` }}>
+            <p style={space(12, r.color, { marginBottom: 6 })}>{r.name}</p>
+            <p style={mono(10, C.textMid, { lineHeight: 1.6 })}>{r.note}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Long run build */}
+      <SectionLabel>Long run progression — Sunday build</SectionLabel>
+      <div style={{ position: "relative", height: 140, marginBottom: 4 }}>
+        {/* Baseline */}
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 1, background: C.border }} />
+        <div style={{ position: "absolute", inset: 0, display: "flex", gap: 4, alignItems: "flex-end", paddingBottom: 0 }}>
+          {LONG_RUN_BUILD.map((w, i) => {
+            const pct = w.km / maxKm;
+            const barH = Math.round(pct * 110);
+            const col = w.deload ? C.blue : w.peak ? C.orange : C.green;
+            return (
+              <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%" }}>
+                <span style={space(9, col, { marginBottom: 4 })}>{w.km}</span>
+                {(w.deload || w.peak) && <span style={mono(7, col, { marginBottom: 2 })}>{w.deload ? "DL" : "↑"}</span>}
+                <div style={{ width: "100%", height: barH, background: `${col}33`, border: `1px solid ${col}55`, borderBottom: `2px solid ${col}` }} />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 4, marginBottom: 24 }}>
+        {LONG_RUN_BUILD.map((w, i) => (
+          <div key={i} style={{ flex: 1, textAlign: "center" }}>
+            <span style={mono(8, C.textDim)}>W{w.week}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Weekly volume */}
+      <SectionLabel style={{ marginTop: 8 }}>Weekly total run volume (km)</SectionLabel>
+      <div style={{ position: "relative", height: 100, marginBottom: 4 }}>
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 1, background: C.border }} />
+        <div style={{ position: "absolute", inset: 0, display: "flex", gap: 4, alignItems: "flex-end" }}>
+          {WEEKLY_VOL.map((w, i) => {
+            const barH = Math.round((w.km / 40) * 80);
+            const col = w.deload ? C.blue : w.peak ? C.orange : C.accent;
+            return (
+              <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%" }}>
+                <span style={space(8, col, { marginBottom: 3 })}>{w.km}</span>
+                <div style={{ width: "100%", height: barH, background: `${col}22`, borderBottom: `2px solid ${col}` }} />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 4, marginBottom: 24 }}>
+        {WEEKLY_VOL.map((w, i) => (
+          <div key={i} style={{ flex: 1, textAlign: "center" }}>
+            <span style={mono(8, C.textDim)}>W{w.week}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* HR development */}
+      <SectionLabel>Aerobic development framework</SectionLabel>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+        {[
+          { phase: "Base (now→Jun 20)", focus: "Z2 only · Build aerobic engine · HR <150 on all runs · No tempo", color: C.green },
+          { phase: "Build (Jun 20→Aug 15)", focus: "Introduce Z3 tempo · Hyrox run pace intervals · 1 quality session/week", color: C.yellow },
+          { phase: "Peak (Aug 15→Sep 20)", focus: "Race pace work · Hyrox 1km repeats at target pace · Sharpen", color: C.orange },
+        ].map((p, i) => (
+          <div key={i} style={{ padding: "12px 14px", border: `1px solid ${p.color}33`, borderLeft: `2px solid ${p.color}` }}>
+            <p style={mono(8, p.color, { textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 8 })}>{p.phase}</p>
+            <p style={mono(10, C.textMid, { lineHeight: 1.7 })}>{p.focus}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── APP SHELL ───────────────────────────────────────────────────────────────
+function App() {
+  const [tab, setTab] = useState(() => localStorage.getItem("arty-hub-tab") || "weekly");
+  function switchTab(id) { setTab(id); localStorage.setItem("arty-hub-tab", id); }
+
+  const renderContent = () => {
+    if (tab === "weekly")   return <WeeklyOverview />;
+    if (tab === "strength") return <Strength />;
+    if (tab === "runs")     return <Runs />;
+    if (tab === "analysis") return <Analysis />;
+    if (tab === "rundev")   return <RunDev />;
+    return <WeeklyOverview />;
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: C.bg }}>
+      {/* Top bar */}
+      <div style={{ borderBottom: `1px solid ${C.border}`, position: "sticky", top: 0, background: C.bg, zIndex: 50 }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px", display: "flex", alignItems: "center", gap: 0, height: 48 }}>
+          <span style={space(14, C.accent, { marginRight: 32, letterSpacing: 1 })}>ARTY-MOVES</span>
+          <div style={{ display: "flex", gap: 0, flex: 1 }}>
+            {TABS.map(t => (
+              <button key={t.id} onClick={() => switchTab(t.id)} style={{
+                padding: "0 18px", height: 48, border: "none",
+                borderBottom: tab === t.id ? `2px solid ${C.accent}` : `2px solid transparent`,
+                background: "transparent", cursor: "pointer",
+                ...mono(10, tab === t.id ? C.accent : C.textDim, { textTransform: "uppercase", letterSpacing: 1.5 }),
+                whiteSpace: "nowrap",
+              }}>
+                {t.icon} {t.label}
+              </button>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+            <a href="Arty-Moves Preview.html" style={{ ...mono(9, C.textDim, { letterSpacing: 1.5, textTransform: "uppercase", textDecoration: "none" }) }}>Tracker ↗</a>
+            <a href="Muscle Coverage.html" style={{ ...mono(9, C.textDim, { letterSpacing: 1.5, textTransform: "uppercase", textDecoration: "none" }) }}>Analysis ↗</a>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px 80px" }}>
+        {renderContent()}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

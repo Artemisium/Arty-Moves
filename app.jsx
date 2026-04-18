@@ -1,4 +1,6 @@
-import { useState, useMemo, useEffect } from "react";
+// Arty-Moves app — browser-Babel version of workout-database.jsx
+// (import stripped; useState/useMemo pulled from window.React)
+const { useState, useMemo, useEffect } = React;
 
 // ────────────────────────────────────────
 // Themes — swap via Tweaks panel
@@ -1196,4 +1198,4 @@ function ArtyMovesApp() {
   );
 }
 
-export default ArtyMovesApp;
+window.ArtyMovesApp = ArtyMovesApp;
