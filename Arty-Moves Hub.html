@@ -2,6 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
 <title>Arty-Moves</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
 <style>
@@ -9,7 +10,78 @@
   html, body { background: #060608; color: #d0d0d4; font-family: 'DM Mono', monospace; min-height: 100vh; }
   body::-webkit-scrollbar { width: 0; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-  .fade { animation: fadeIn 0.25s ease forwards; }
+
+  /* ── Responsive layout grid classes ── */
+  .rg2  { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .rg3  { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .rg4  { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+  .rg2x { display: grid; grid-template-columns: 1fr 320px; gap: 20px; }
+
+  /* 7-col day strip — scroll on mobile */
+  .day-strip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 24px; }
+
+  /* Grade picker — compact grid */
+  .grade-grid { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 20px; }
+
+  /* Top desktop nav */
+  .top-nav { display: flex; align-items: center; gap: 0; flex: 1; }
+  .top-bar { border-bottom: 1px solid #2a2a30; position: sticky; top: 0; background: #060608; z-index: 50; }
+
+  /* Bottom mobile nav — hidden by default */
+  .bottom-nav { display: none; }
+
+  /* Page content wrapper */
+  .page-content { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+
+  /* Race countdown flex */
+  .race-strip { display: flex; gap: 1px; margin-bottom: 24px; }
+
+  /* Horizontal scroll strip for mobile day cards */
+  @media (max-width: 767px) {
+    /* Nav: hide top, show bottom */
+    .top-nav { display: none !important; }
+    .top-bar-links { display: none !important; }
+    .top-bar-wordmark { flex: 1; text-align: center; }
+    .bottom-nav {
+      display: flex; position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+      background: #0c0c10; border-top: 1px solid #2a2a30;
+      padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+    }
+
+    /* Content padding for bottom nav */
+    .page-content { padding: 16px 14px 90px; }
+
+    /* 7-day strip → horizontal scroll */
+    .day-strip {
+      display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px;
+      scroll-snap-type: x mandatory; scrollbar-width: none;
+      margin-bottom: 16px;
+    }
+    .day-strip::-webkit-scrollbar { display: none; }
+    .day-strip > * { flex: 0 0 calc(38vw); scroll-snap-align: start; min-width: 0; }
+
+    /* Grids → single column */
+    .rg2, .rg3, .rg4 { grid-template-columns: 1fr; gap: 8px; }
+    .rg2x { grid-template-columns: 1fr; gap: 12px; }
+
+    /* Race strip → stack on very narrow screens */
+    .race-strip { flex-direction: column; gap: 4px; }
+
+    /* Grade grid on mobile — 5 per row */
+    .grade-grid button { flex: 0 0 calc(20% - 4px); min-width: 0; }
+
+    /* Climbing section */
+    .climb-log-grid { flex-direction: column; }
+
+    /* Section labels smaller */
+    body { font-size: 13px; }
+  }
+
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .rg3 { grid-template-columns: 1fr 1fr; }
+    .rg4 { grid-template-columns: 1fr 1fr; }
+    .page-content { padding: 24px 20px 80px; }
+  }
 </style>
 </head>
 <body>
@@ -21,6 +93,19 @@
 
 <script type="text/babel">
 const { useState, useMemo, useEffect, useRef } = React;
+
+// ─── Responsive hook ─────────────────────────────────────────────────────────
+function useMobile() {
+  const [mobile, setMobile] = useState(() => window.innerWidth < 768);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const handler = e => setMobile(e.matches);
+    mq.addEventListener("change", handler);
+    setMobile(mq.matches);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return mobile;
+}
 
 const C = {
   bg: "#060608", surface: "#0c0c10", border: "#2a2a30", borderLight: "#3a3a42",
@@ -113,7 +198,7 @@ function MiniBar({ pct, color }) {
 function CountdownStrip() {
   const now = new Date();
   return (
-    <div style={{ display: "flex", gap: 1, marginBottom: 24 }}>
+    <div className="race-strip">
       {RACES.map((r, i) => {
         const days = Math.ceil((r.date - now) / 86400000);
         return (
@@ -149,7 +234,7 @@ function WeeklyOverview() {
 
       {/* Day cards */}
       <SectionLabel>Week at a glance — Base Phase</SectionLabel>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 4, marginBottom: 24 }}>
+      <div className="day-strip">
         {WEEK.map((d, i) => {
           const color = typeColor[d.type] || C.textMid;
           const isSelected = selected === i;
@@ -192,7 +277,7 @@ function WeeklyOverview() {
 
       {/* Load summary */}
       <SectionLabel>Weekly training load</SectionLabel>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 4, marginBottom: 24 }}>
+      <div className="rg4" style={{ marginBottom: 24 }}>
         {[
           { label: "Run Volume", value: "20–40 km", sub: "builds week-on-week", color: C.green },
           { label: "Strength", value: "2 sessions", sub: "Tue D1 · Thu D2", color: C.purple },
@@ -353,7 +438,7 @@ function ClimbingTracker() {
 
       {/* LOG view */}
       {view === "log" && (
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 320px", gap:20 }}>
+        <div className="rg2x">
           <div>
             <SectionLabel>Grade — {mode==="topRope"?"Top Rope":"Bouldering"}</SectionLabel>
             <div style={{ display:"flex", flexWrap:"wrap", gap:4, marginBottom:20 }}>
@@ -498,12 +583,12 @@ function Strength() {
 
       {subTab === "workouts" && (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 24 }}>
+          <div className="rg2" style={{ marginBottom: 24 }}>
             <WorkoutCard w={D1} />
             <WorkoutCard w={D2} />
           </div>
           <SectionLabel>A / B / C Home Accessory — 8-10 min slots</SectionLabel>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
+          <div className="rg3">
             {ABC.map(a => (
               <div key={a.id} style={{ padding: "12px 14px", border: `1px solid ${a.color}33`, borderLeft: `2px solid ${a.color}` }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
@@ -545,7 +630,7 @@ function Runs() {
         <Eyebrow>Base Phase · 9 weeks remaining</Eyebrow>
         <p style={space(18, C.text)}>Runs & Cardio</p>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 28 }}>
+      <div className="rg2" style={{ marginBottom: 28 }}>
         {RUN_SESSIONS.map((s, i) => (
           <div key={i} style={{ padding: "14px 16px", border: `1px solid ${s.color}33`, borderLeft: `2px solid ${s.color}` }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
@@ -635,7 +720,7 @@ function Analysis() {
           </div>
         ))}
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      <div className="rg2">
         {groups.map(g => (
           <div key={g}>
             <SectionLabel>{g}</SectionLabel>
@@ -739,7 +824,7 @@ function RunDev() {
 
       {/* HR development */}
       <SectionLabel>Aerobic development framework</SectionLabel>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+      <div className="rg3">
         {[
           { phase: "Base (now→Jun 20)", focus: "Z2 only · Build aerobic engine · HR <150 on all runs · No tempo", color: C.green },
           { phase: "Build (Jun 20→Aug 15)", focus: "Introduce Z3 tempo · Hyrox run pace intervals · 1 quality session/week", color: C.yellow },
@@ -758,6 +843,7 @@ function RunDev() {
 // ─── APP SHELL ───────────────────────────────────────────────────────────────
 function App() {
   const [tab, setTab] = useState(() => localStorage.getItem("arty-hub-tab") || "weekly");
+  const isMobile = useMobile();
   function switchTab(id) { setTab(id); localStorage.setItem("arty-hub-tab", id); }
 
   const renderContent = () => {
@@ -771,14 +857,14 @@ function App() {
 
   return (
     <div style={{ minHeight: "100vh", background: C.bg }}>
-      {/* Top bar */}
-      <div style={{ borderBottom: `1px solid ${C.border}`, position: "sticky", top: 0, background: C.bg, zIndex: 50 }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px", display: "flex", alignItems: "center", gap: 0, height: 48 }}>
-          <span style={space(14, C.accent, { marginRight: 32, letterSpacing: 1 })}>ARTY-MOVES</span>
-          <div style={{ display: "flex", gap: 0, flex: 1 }}>
+      {/* Top bar — desktop */}
+      <div className="top-bar" style={{ height: 48 }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 24px", display: "flex", alignItems: "center", height: 48 }}>
+          <span className="top-bar-wordmark" style={space(14, C.accent, { marginRight: 32, letterSpacing: 1, flexShrink: 0 })}>ARTY-MOVES</span>
+          <div className="top-nav">
             {TABS.map(t => (
               <button key={t.id} onClick={() => switchTab(t.id)} style={{
-                padding: "0 18px", height: 48, border: "none",
+                padding: "0 16px", height: 48, border: "none",
                 borderBottom: tab === t.id ? `2px solid ${C.accent}` : `2px solid transparent`,
                 background: "transparent", cursor: "pointer",
                 ...mono(10, tab === t.id ? C.accent : C.textDim, { textTransform: "uppercase", letterSpacing: 1.5 }),
@@ -788,17 +874,41 @@ function App() {
               </button>
             ))}
           </div>
-          <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+          <div className="top-bar-links" style={{ display: "flex", gap: 16, alignItems: "center", marginLeft: "auto" }}>
             <a href="Arty-Moves Preview.html" style={{ ...mono(9, C.textDim, { letterSpacing: 1.5, textTransform: "uppercase", textDecoration: "none" }) }}>Tracker ↗</a>
             <a href="Muscle Coverage.html" style={{ ...mono(9, C.textDim, { letterSpacing: 1.5, textTransform: "uppercase", textDecoration: "none" }) }}>Analysis ↗</a>
           </div>
         </div>
       </div>
 
+      {/* Mobile top bar — wordmark only */}
+      {isMobile && (
+        <div style={{ height: 44, borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", position: "sticky", top: 0, background: C.bg, zIndex: 50 }}>
+          <span style={space(13, C.accent, { letterSpacing: 2 })}>ARTY-MOVES</span>
+        </div>
+      )}
+
       {/* Content */}
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px 80px" }}>
+      <div className="page-content">
         {renderContent()}
       </div>
+
+      {/* Bottom nav — mobile */}
+      <nav className="bottom-nav">
+        {TABS.map(t => (
+          <button key={t.id} onClick={() => switchTab(t.id)} style={{
+            flex: 1, display: "flex", flexDirection: "column", alignItems: "center",
+            justifyContent: "center", gap: 3, padding: "6px 0",
+            background: "transparent", border: "none", cursor: "pointer",
+            borderTop: `2px solid ${tab === t.id ? C.accent : "transparent"}`,
+          }}>
+            <span style={{ fontSize: 18, lineHeight: 1 }}>{t.icon}</span>
+            <span style={mono(8, tab === t.id ? C.accent : C.textDim, { letterSpacing: 1, textTransform: "uppercase" })}>
+              {t.label.split(" / ")[0].split(" ")[0]}
+            </span>
+          </button>
+        ))}
+      </nav>
     </div>
   );
 }

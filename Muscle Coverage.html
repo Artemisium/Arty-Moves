@@ -2,6 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
 <title>Arty-Moves · Muscle Coverage</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
 <style>
@@ -9,10 +10,10 @@
   html, body { background: #060608; color: #d0d0d4; font-family: 'DM Mono', monospace; min-height: 100vh; }
 
   /* Nav */
-  .hub-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 999; height: 36px; background: #060608; border-bottom: 1px solid #2a2a30; display: flex; align-items: center; padding: 0 24px; gap: 16px; }
-  .hub-nav a { font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; text-decoration: none; color: #8af0c0; font-family: 'DM Mono', monospace; }
-  .hub-nav .current { color: #78787e; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; }
-  .hub-nav .sep { color: #2a2a30; }
+  .hub-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 999; height: 36px; background: #060608; border-bottom: 1px solid #2a2a30; display: flex; align-items: center; padding: 0 24px; gap: 16px; overflow-x: auto; white-space: nowrap; }
+  .hub-nav a { font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; text-decoration: none; color: #8af0c0; font-family: 'DM Mono', monospace; flex-shrink: 0; }
+  .hub-nav .current { color: #78787e; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; flex-shrink: 0; }
+  .hub-nav .sep { color: #2a2a30; flex-shrink: 0; }
 
   .page { max-width: 960px; margin: 0 auto; padding: 72px 24px 80px; }
 
@@ -92,6 +93,32 @@
   .note-card h3 { font-size: 10px; color: #d0d0d4; font-weight: 400; margin-bottom: 5px; }
   .note-card p  { font-size: 9px; color: #78787e; line-height: 1.6; }
   .note-card .pct { font-family: 'Space Mono', monospace; font-size: 14px; margin-bottom: 5px; }
+  /* ── Notes grid ── */
+  .notes-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+  @media (max-width: 767px) {
+    .page { padding: 52px 14px 60px; }
+    h1 { font-size: 20px; }
+    .subtitle { font-size: 10px; }
+    .wchip { min-width: 100%; }
+    .tc { min-width: calc(50% - 4px); }
+    .zones { display: grid; grid-template-columns: repeat(3,1fr); flex-wrap: wrap; }
+    .zone { padding: 5px 6px; }
+    .col-name { width: 110px; }
+    .col-pct  { width: 44px; font-size: 10px; }
+    .col-badge { display: none; }
+    .mname { font-size: 11px; }
+    .msub  { display: none; }
+    .bar-outer { height: 22px; }
+    .notes-grid { grid-template-columns: 1fr; }
+    .note-card .pct { font-size: 13px; }
+  }
+
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .col-name { width: 140px; }
+    .notes-grid { grid-template-columns: 1fr 1fr; }
+  }
+
 </style>
 </head>
 <body>
@@ -285,7 +312,7 @@ GROUPS.forEach(group => {
 app.innerHTML += `
   <div style="margin-top:36px">
     <div class="section-label" style="margin-bottom:12px">High-load muscles — watch for recovery signals</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+    <div class="notes-grid">
       <div class="note-card warn">
         <div class="pct" style="color:#f08a8a">233% Hip Flexors</div>
         <h3>Monitor for anterior hip tightness</h3>
