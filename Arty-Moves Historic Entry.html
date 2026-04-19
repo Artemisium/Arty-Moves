@@ -1,0 +1,588 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<title>Arty-Moves · Historic Entry</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+  html, body { background: #060608; min-height: 100vh; font-family: 'DM Mono', monospace; color: #d0d0d4; }
+  body::-webkit-scrollbar { width: 0; }
+  input, select, button { font-family: inherit; color: inherit; background: transparent; border: 1px solid #2a2a30; outline: none; }
+  input:focus, select:focus { border-color: #8af0c0; }
+
+  .nav { position: sticky; top: 0; z-index: 10; height: 40px; background: #060608; border-bottom: 1px solid #2a2a30; display: flex; align-items: center; padding: 0 16px; gap: 16px; }
+  .nav a { color: #8af0c0; text-decoration: none; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; }
+  .nav .current { color: #78787e; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; }
+  .nav .sep { color: #2a2a30; font-size: 9px; }
+  .nav .spacer { flex: 1; }
+  .nav .brand { color: #8af0c0; letter-spacing: 2px; font-family: 'Space Mono', monospace; font-size: 12px; }
+
+  .page { max-width: 820px; margin: 0 auto; padding: 24px 16px 64px; }
+  h2, h3, h4 { font-weight: 400; letter-spacing: 0.5px; }
+  .eyebrow { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: #48484e; margin-bottom: 6px; }
+  .title { font-family: 'Space Mono', monospace; font-size: 22px; color: #d0d0d4; margin-bottom: 6px; }
+  .subtitle { font-size: 11px; color: #78787e; line-height: 1.6; margin-bottom: 20px; }
+  .section-label { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: #48484e; border-bottom: 1px solid #2a2a30; padding-bottom: 6px; margin: 24px 0 12px; }
+  .card { border: 1px solid #2a2a30; padding: 14px; margin-bottom: 12px; }
+  .card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 10px; flex-wrap: wrap; }
+  .card-title { font-family: 'Space Mono', monospace; font-size: 15px; }
+  .muted { color: #78787e; font-size: 10px; }
+  .dim { color: #48484e; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; }
+  .pill { padding: 4px 10px; border: 1px solid #2a2a30; background: transparent; cursor: pointer; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: #78787e; }
+  .pill.active { color: #8af0c0; border-color: #8af0c0; background: rgba(138,240,192,0.08); }
+  .pill.purple.active { color: #c8a0f0; border-color: #c8a0f0; background: rgba(200,160,240,0.08); }
+  .pill.orange.active { color: #f0b88a; border-color: #f0b88a; background: rgba(240,184,138,0.08); }
+  .pill.blue.active { color: #8ac8f0; border-color: #8ac8f0; background: rgba(138,200,240,0.08); }
+  .ctx-row { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .ctx-field { flex: 1; min-width: 140px; }
+  .ctx-field label { display: block; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: #48484e; margin-bottom: 4px; }
+  .ctx-field select, .ctx-field input { width: 100%; padding: 8px 10px; font-size: 12px; background: #0c0c10; color: #d0d0d4; }
+
+  .toggle-row { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .toggle { padding: 6px 14px; border: 1px solid #2a2a30; background: transparent; cursor: pointer; font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase; color: #78787e; }
+  .toggle.active { color: #8af0c0; border-color: #8af0c0; background: rgba(138,240,192,0.1); }
+  .toggle.active.yes { color: #8af0c0; border-color: #8af0c0; }
+  .toggle.active.no  { color: #f08a8a; border-color: #f08a8a; background: rgba(240,138,138,0.1); }
+
+  .date-input { padding: 6px 8px; background: #0c0c10; border: 1px solid #2a2a30; color: #d0d0d4; font-size: 12px; min-width: 140px; }
+
+  .ex-row { padding: 10px 0; border-bottom: 1px solid #2a2a30; }
+  .ex-row:last-child { border-bottom: none; }
+  .ex-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; gap: 8px; flex-wrap: wrap; }
+  .ex-name { font-size: 12px; color: #d0d0d4; }
+  .ex-target { font-size: 9px; color: #48484e; letter-spacing: 0.5px; }
+  .tier { font-size: 7px; padding: 1px 5px; border: 1px solid; text-transform: uppercase; letter-spacing: 1px; margin-left: 6px; }
+  .tier.compound { color: #8af0c0; border-color: rgba(138,240,192,0.4); }
+  .tier.accessory { color: #f0e68a; border-color: rgba(240,230,138,0.4); }
+  .tier.core { color: #8af0c0; border-color: rgba(138,240,192,0.4); }
+  .tier.isolation { color: #78787e; border-color: rgba(120,120,126,0.4); }
+
+  .sets-grid { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+  .set-row { display: flex; gap: 6px; align-items: center; padding: 4px 0; }
+  .set-idx { font-size: 9px; color: #48484e; width: 24px; letter-spacing: 1px; }
+  .set-input { width: 60px; padding: 5px 8px; background: #0c0c10; border: 1px solid #2a2a30; color: #d0d0d4; font-size: 12px; text-align: right; font-family: 'Space Mono', monospace; }
+  .set-input:focus { border-color: #8af0c0; }
+  .set-label { font-size: 9px; color: #48484e; letter-spacing: 0.5px; }
+  .set-check { width: 26px; height: 26px; padding: 0; border: 1px solid #2a2a30; background: transparent; cursor: pointer; font-size: 12px; color: #48484e; display: flex; align-items: center; justify-content: center; }
+  .set-check.on { background: rgba(138,240,192,0.15); border-color: #8af0c0; color: #8af0c0; }
+  .set-add, .set-remove { padding: 3px 8px; background: transparent; border: 1px dashed #2a2a30; color: #78787e; cursor: pointer; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; }
+  .set-add:hover { color: #8af0c0; border-color: #8af0c0; }
+  .set-remove { border-color: rgba(240,138,138,0.3); color: #f08a8a; }
+  .set-actions { display: flex; gap: 4px; margin-top: 8px; }
+
+  .finisher-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border: 1px solid rgba(240,184,138,0.2); border-left: 2px solid #f0b88a; margin-bottom: 4px; }
+  .finisher-name { font-size: 11px; color: #f0b88a; }
+  .finisher-pro { font-size: 9px; color: #48484e; letter-spacing: 1px; text-transform: uppercase; }
+  .finisher-sets { display: flex; gap: 4px; }
+  .finisher-check { padding: 4px 10px; border: 1px solid #2a2a30; background: transparent; cursor: pointer; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: #78787e; }
+  .finisher-check.on { background: rgba(138,240,192,0.12); border-color: #8af0c0; color: #8af0c0; }
+
+  .climb-row { display: flex; gap: 6px; align-items: center; padding: 8px 0; border-bottom: 1px solid #2a2a30; flex-wrap: wrap; }
+  .climb-row > * { flex-shrink: 0; }
+  .climb-row .grow { flex: 1; min-width: 120px; }
+  .climb-row input, .climb-row select { padding: 5px 8px; background: #0c0c10; border: 1px solid #2a2a30; color: #d0d0d4; font-size: 11px; }
+  .climb-row .notes-input { width: 100%; }
+  .climb-delete { background: transparent; border: none; color: #f08a8a; cursor: pointer; padding: 0 4px; font-size: 14px; line-height: 1; }
+  .add-climb { padding: 8px 16px; border: 1px dashed #8af0c0; background: transparent; color: #8af0c0; cursor: pointer; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; margin-top: 8px; }
+  .add-climb:hover { background: rgba(138,240,192,0.08); }
+
+  .save-bar { position: sticky; bottom: 0; background: linear-gradient(180deg, rgba(6,6,8,0.9), #060608); padding: 16px 0 8px; margin-top: 32px; border-top: 1px solid #2a2a30; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .save-btn { flex: 1; min-width: 200px; padding: 12px 20px; border: 1px solid #8af0c0; background: rgba(138,240,192,0.15); color: #8af0c0; cursor: pointer; font-family: 'Space Mono', monospace; font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase; }
+  .save-btn:hover { background: rgba(138,240,192,0.25); }
+  .save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .status { font-size: 10px; color: #78787e; }
+  .status.ok { color: #8af0c0; }
+  .status.err { color: #f08a8a; }
+
+  .hint-box { padding: 10px 12px; border: 1px solid rgba(240,230,138,0.3); border-left: 2px solid #f0e68a; background: rgba(240,230,138,0.04); margin-bottom: 16px; font-size: 10px; color: #78787e; line-height: 1.6; }
+</style>
+</head>
+<body>
+<nav class="nav">
+  <a href="Arty-Moves Hub.html">← Hub</a>
+  <span class="sep">|</span>
+  <span class="current">Historic Entry</span>
+  <span class="spacer"></span>
+  <span class="brand">ARTY-MOVES</span>
+</nav>
+
+<div class="page">
+  <div id="app"></div>
+</div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel">
+const { useState, useEffect, useMemo } = React;
+
+// ─── WORKOUT TEMPLATES ────────────────────────────────────────────────
+// Mirror of app.jsx base workouts — keeping this file self-contained
+const BASE_D1 = {
+  label: "Pull & Carry", icon: "💪", colorKey: "blue",
+  exercises: [
+    { name: "Deadlift",       baseReps: 3, topReps: 5, weight: 315, weightBump: 10, unit: "lbs", setsByWeek: [4, 5, 5], repsByWeek: [3, 4, 5], tier: "compound",
+      deload: { sets: 3, reps: 5, weight: 225 } },
+    { name: "Overhead Press", baseReps: 5, topReps: 7, weight: 95,  weightBump: 5,  unit: "lbs", tier: "compound",
+      deload: { sets: 3, reps: 5, weight: 75 } },
+    { name: "Barbell Row",    baseReps: 6, topReps: 8, weight: 135, weightBump: 5,  unit: "lbs", tier: "accessory",
+      deload: { sets: 3, reps: 8, weight: 115 } },
+    { name: "Walking Lunges", baseReps: 10, topReps: 14, weight: 24, weightBump: 2, unit: "kg",  tier: "accessory",
+      deload: { sets: 3, reps: 8, weight: 24 } },
+  ],
+  finishers: [
+    { name: "Sled Pull",     proWeight: "153 kg", halfDist: "12.5m" },
+    { name: "Farmers Carry", proWeight: "2×32 kg", halfDist: "50m" },
+  ],
+};
+
+const BASE_D2 = {
+  label: "Push & Squat", icon: "🏋️", colorKey: "purple",
+  exercises: [
+    { name: "Bench Press",        baseReps: 5, topReps: 5, weight: 135, weightBump: 5, unit: "lbs", setsByWeek: [4, 4, 3], repsByWeek: [5, 3, 5], weightByWeek: [135, 155, 155], tier: "compound",
+      deload: { sets: 3, reps: 5, weight: 155 } },
+    { name: "Back Squat",         baseReps: 3, topReps: 5, weight: 225, weightBump: 10, unit: "lbs", setsByWeek: [4, 4, 4], repsByWeek: [3, 4, 5], tier: "compound",
+      deload: { sets: 4, reps: 3, weight: 225 } },
+    { name: "Weighted Chin-ups",  baseReps: 5, topReps: 7, weight: 20, weightBump: 5, unit: "lbs", tier: "accessory",
+      deload: { sets: 3, reps: 5, weight: 10 } },
+    { name: "Weighted Dips",      baseReps: 8, topReps: 10, weight: 20, weightBump: 5, unit: "lbs", tier: "accessory",
+      deload: { sets: 3, reps: 8, weight: 10 } },
+  ],
+  finishers: [
+    { name: "Sled Push",  proWeight: "202 kg", halfDist: "12.5m" },
+    { name: "Wall Balls", proWeight: "9 kg",   halfDist: "25 reps" },
+  ],
+};
+
+// Port of applyBlock + applyWeek from app.jsx (so targets render identically)
+function applyBlock(ex, block) {
+  if (block <= 1 || ex.weight === 0) return { ...ex };
+  return { ...ex, weight: ex.weight + (ex.weightBump * (block - 1)) };
+}
+function applyWeek(ex, week) {
+  const e = { ...ex, sets: 3, reps: ex.baseReps };
+  if (week === 4) {
+    if (e.deload) {
+      e.sets = e.deload.sets ?? e.sets;
+      e.reps = e.deload.reps ?? e.baseReps;
+      e.weight = e.deload.weight ?? (e.weight > 0 ? Math.round(e.weight * 0.7) : 0);
+      e.isDeload = true;
+      return e;
+    }
+    e.weight = e.weight > 0 ? Math.round(e.weight * 0.7) : 0;
+    e.sets = Math.max((e.sets || 4) - 1, 2);
+    e.reps = e.baseReps;
+    e.isDeload = true;
+    return e;
+  }
+  if (e.setsByWeek && e.setsByWeek[week - 1] != null) e.sets = e.setsByWeek[week - 1];
+  else e.sets = 4;
+  if (e.repsByWeek && e.repsByWeek[week - 1] != null) {
+    e.reps = e.repsByWeek[week - 1];
+  } else if (week > 1) {
+    const repSteps = e.topReps - e.baseReps;
+    if (week === 2) e.reps = e.baseReps + Math.ceil(repSteps / 2);
+    else if (week === 3) e.reps = e.topReps;
+  }
+  if (e.weightByWeek && e.weightByWeek[week - 1] != null) e.weight = e.weightByWeek[week - 1];
+  return e;
+}
+
+// ─── CLIMB VOCAB ──────────────────────────────────────────────────────
+const TR_GRADES = ["5.8","5.9","5.10a","5.10b","5.10c","5.10d","5.11a","5.11b","5.11c","5.11d","5.12a","5.12b","5.12c","5.12d","5.13a","5.13b","5.13c"];
+const BOULDER_GRADES = ["V0","V1","V2","V3","V4","V5","V6","V7","V8","V9","V10","V11","V12"];
+const SEND_TYPES = [
+  { id: "flash",    label: "Flash" },
+  { id: "send",     label: "Send" },
+  { id: "redpoint", label: "Redpoint" },
+  { id: "attempt",  label: "Attempt" },
+];
+
+// ─── UTILS ────────────────────────────────────────────────────────────
+function fmt(d) {
+  const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,"0"), day = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+}
+function mondayOfISOWeek(year, week) {
+  const simple = new Date(Date.UTC(year, 0, 1 + (week - 1) * 7));
+  const dow = simple.getUTCDay();
+  const ISOweekStart = new Date(simple);
+  if (dow <= 4) ISOweekStart.setUTCDate(simple.getUTCDate() - simple.getUTCDay() + 1);
+  else          ISOweekStart.setUTCDate(simple.getUTCDate() + 8 - simple.getUTCDay());
+  return ISOweekStart;
+}
+
+// ─── EXERCISE ENTRY ───────────────────────────────────────────────────
+function ExerciseEntry({ ex, target, sets, unit, onChange }) {
+  function updateSet(i, patch) {
+    onChange(sets.map((s, idx) => idx === i ? { ...s, ...patch } : s));
+  }
+  function addSet() {
+    const last = sets[sets.length - 1] || { reps: target.reps, weight: target.weight, logged: true };
+    onChange([...sets, { ...last, logged: true }]);
+  }
+  function removeSet() {
+    if (sets.length > 1) onChange(sets.slice(0, -1));
+  }
+
+  return (
+    <div className="ex-row">
+      <div className="ex-head">
+        <div>
+          <span className="ex-name">{ex.name}</span>
+          <span className={`tier ${ex.tier}`}>{ex.tier}</span>
+        </div>
+        <span className="ex-target">
+          target {target.sets}×{target.reps}{target.weight > 0 ? ` @ ${target.weight} ${unit}` : ""}
+          {target.isDeload && " · DELOAD"}
+        </span>
+      </div>
+      <div className="sets-grid">
+        {sets.map((s, i) => (
+          <div key={i} className="set-row">
+            <span className="set-idx">S{i+1}</span>
+            <input
+              className="set-input" type="number" inputMode="numeric"
+              value={s.reps} onChange={e => updateSet(i, { reps: parseInt(e.target.value)||0 })}
+            />
+            <span className="set-label">rep</span>
+            {target.weight > 0 && (<>
+              <input
+                className="set-input" type="number" inputMode="numeric"
+                value={s.weight} onChange={e => updateSet(i, { weight: parseInt(e.target.value)||0 })}
+              />
+              <span className="set-label">{unit}</span>
+            </>)}
+            <button
+              className={`set-check ${s.logged ? "on" : ""}`}
+              onClick={() => updateSet(i, { logged: !s.logged })}
+              title={s.logged ? "Logged (click to unmark)" : "Not logged"}
+            >✓</button>
+          </div>
+        ))}
+      </div>
+      <div className="set-actions">
+        <button className="set-add" onClick={addSet}>+ Add set</button>
+        {sets.length > 1 && <button className="set-remove" onClick={removeSet}>− Remove last</button>}
+      </div>
+    </div>
+  );
+}
+
+// ─── WORKOUT ENTRY ────────────────────────────────────────────────────
+function WorkoutEntry({ wkey, config, block, week, state, onChange }) {
+  const processed = useMemo(() => {
+    return config.exercises.map(ex => {
+      const blocked = applyBlock(ex, block);
+      return applyWeek(blocked, week);
+    });
+  }, [config, block, week]);
+
+  function toggleDone() {
+    if (state.done) {
+      onChange({ ...state, done: false });
+    } else {
+      // Initialize exercise sets from targets
+      const exerciseSets = {};
+      processed.forEach((p, idx) => {
+        exerciseSets[idx] = Array.from({ length: p.sets }).map(() => ({
+          reps: p.reps, weight: p.weight, logged: true,
+        }));
+      });
+      const finishers = {};
+      config.finishers.forEach((_, fi) => {
+        finishers[fi] = week === 4 ? { 0: true } : { 0: true, 1: true };
+      });
+      onChange({ ...state, done: true, exerciseSets, finishers });
+    }
+  }
+
+  function setExerciseSets(exIdx, sets) {
+    onChange({ ...state, exerciseSets: { ...state.exerciseSets, [exIdx]: sets } });
+  }
+  function toggleFinisherSet(fIdx, sIdx) {
+    const cur = state.finishers[fIdx] || {};
+    onChange({
+      ...state,
+      finishers: { ...state.finishers, [fIdx]: { ...cur, [sIdx]: !cur[sIdx] } },
+    });
+  }
+
+  const color = config.colorKey === "blue" ? "#8ac8f0" : "#c8a0f0";
+  const numFinisherSets = week === 4 ? 1 : 2;
+
+  return (
+    <div className="card" style={{ borderLeft: `2px solid ${color}` }}>
+      <div className="card-head">
+        <div>
+          <div className="dim">{wkey.toUpperCase()}</div>
+          <div className="card-title" style={{ color }}>
+            {config.icon} {config.label}
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <button
+            className={`toggle ${state.done ? "active yes" : ""}`}
+            onClick={toggleDone}
+          >{state.done ? "✓ Did this" : "Did this?"}</button>
+          <button
+            className={`toggle ${state.done === false ? "active no" : ""}`}
+            onClick={() => onChange({ ...state, done: false, skipped: true })}
+          >Skipped</button>
+        </div>
+      </div>
+
+      {state.done && (<>
+        <div style={{ marginBottom: 12, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <span className="dim">Date</span>
+          <input
+            type="date" className="date-input"
+            value={state.date}
+            onChange={e => onChange({ ...state, date: e.target.value })}
+          />
+        </div>
+
+        <div className="section-label" style={{ margin: "12px 0 4px" }}>Working Sets</div>
+        {processed.map((p, idx) => {
+          const target = { sets: p.sets, reps: p.reps, weight: p.weight, isDeload: p.isDeload };
+          return (
+            <ExerciseEntry
+              key={idx}
+              ex={p}
+              target={target}
+              sets={state.exerciseSets[idx] || []}
+              unit={p.unit}
+              onChange={sets => setExerciseSets(idx, sets)}
+            />
+          );
+        })}
+
+        <div className="section-label" style={{ margin: "16px 0 6px" }}>Hyrox Finishers</div>
+        {config.finishers.map((f, fi) => (
+          <div key={fi} className="finisher-row">
+            <div>
+              <div className="finisher-name">{f.name}</div>
+              <div className="finisher-pro">{f.proWeight} · {f.halfDist}</div>
+            </div>
+            <div className="finisher-sets">
+              {Array.from({ length: numFinisherSets }).map((_, si) => {
+                const on = !!(state.finishers[fi] && state.finishers[fi][si]);
+                return (
+                  <button
+                    key={si}
+                    className={`finisher-check ${on ? "on" : ""}`}
+                    onClick={() => toggleFinisherSet(fi, si)}
+                  >{on ? "✓ " : ""}Set {si+1}</button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </>)}
+    </div>
+  );
+}
+
+// ─── CLIMB ROW ────────────────────────────────────────────────────────
+function ClimbRow({ climb, onChange, onDelete }) {
+  const grades = climb.mode === "topRope" ? TR_GRADES : BOULDER_GRADES;
+  return (
+    <div className="climb-row">
+      <input type="date" value={climb.date} onChange={e => onChange({ ...climb, date: e.target.value })}/>
+      <select value={climb.mode} onChange={e => {
+        const m = e.target.value;
+        const gs = m === "topRope" ? TR_GRADES : BOULDER_GRADES;
+        onChange({ ...climb, mode: m, grade: gs.includes(climb.grade) ? climb.grade : gs[2] });
+      }}>
+        <option value="topRope">Top Rope</option>
+        <option value="bouldering">Boulder</option>
+      </select>
+      <select value={climb.grade} onChange={e => onChange({ ...climb, grade: e.target.value })}>
+        {grades.map(g => <option key={g} value={g}>{g}</option>)}
+      </select>
+      <select value={climb.type} onChange={e => onChange({ ...climb, type: e.target.value })}>
+        {SEND_TYPES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+      </select>
+      <input
+        className="notes-input grow"
+        placeholder="Notes (beta, conditions…)"
+        value={climb.notes}
+        onChange={e => onChange({ ...climb, notes: e.target.value })}
+      />
+      <button className="climb-delete" onClick={onDelete} title="Delete">×</button>
+    </div>
+  );
+}
+
+// ─── MAIN APP ─────────────────────────────────────────────────────────
+function HistoricEntry() {
+  const [phase, setPhase] = useState("base");
+  const [block, setBlock] = useState(1);
+  const [week, setWeek] = useState(2);
+
+  // Initial default dates: Tuesday and Thursday of the selected week (Mon=0 anchor)
+  // Guesses ISO week of (current year, user-configured week). That's fragile.
+  // Better default: today minus some days. Simplest: yesterday.
+  const todayStr = fmt(new Date());
+
+  const [d1, setD1] = useState({
+    done: false, skipped: false, date: todayStr,
+    exerciseSets: {}, finishers: {},
+  });
+  const [d2, setD2] = useState({
+    done: false, skipped: false, date: todayStr,
+    exerciseSets: {}, finishers: {},
+  });
+  const [climbs, setClimbs] = useState([]);
+  const [status, setStatus] = useState(null);
+
+  function addClimb() {
+    setClimbs(prev => [...prev, {
+      id: Date.now() + Math.floor(Math.random() * 1000),
+      date: todayStr, mode: "bouldering", grade: "V2", type: "send", notes: "",
+    }]);
+  }
+
+  function updateClimb(i, climb) {
+    setClimbs(prev => prev.map((c, idx) => idx === i ? climb : c));
+  }
+
+  function deleteClimb(i) {
+    setClimbs(prev => prev.filter((_, idx) => idx !== i));
+  }
+
+  function save() {
+    try {
+      // Read existing
+      const workoutLogs = JSON.parse(localStorage.getItem("arty-workout-logs") || "{}");
+      const detailedLogs = JSON.parse(localStorage.getItem("arty-detailed-logs") || "{}");
+      const finisherLogs = JSON.parse(localStorage.getItem("arty-finisher-logs") || "{}");
+      const climbLogs = JSON.parse(localStorage.getItem("arty-climb-logs") || "[]");
+
+      const pbw = `${phase}/${block}/${week}`;
+      let workoutsWritten = 0, climbsWritten = 0;
+
+      function writeWorkout(wkey, state, config) {
+        if (!state.done) return;
+        workoutLogs[state.date] = {
+          workoutKey: wkey,
+          label: config.label, icon: config.icon, colorKey: config.colorKey,
+          phase, block, week, loggedAt: Date.now(),
+        };
+        detailedLogs[pbw] = detailedLogs[pbw] || {};
+        detailedLogs[pbw][wkey] = {};
+        Object.entries(state.exerciseSets).forEach(([idx, sets]) => {
+          detailedLogs[pbw][wkey][idx] = sets.map(s => ({
+            reps: s.reps, weight: s.weight, logged: !!s.logged,
+          }));
+        });
+        finisherLogs[pbw] = finisherLogs[pbw] || {};
+        finisherLogs[pbw][wkey] = {};
+        Object.entries(state.finishers).forEach(([fi, sets]) => {
+          finisherLogs[pbw][wkey][fi] = { ...sets };
+        });
+        workoutsWritten++;
+      }
+
+      writeWorkout("d1", d1, BASE_D1);
+      writeWorkout("d2", d2, BASE_D2);
+
+      // Climbs: dedupe by id, prepend new
+      const existingIds = new Set(climbLogs.map(c => c.id));
+      climbs.forEach(c => {
+        if (!c.id || !existingIds.has(c.id)) {
+          climbLogs.unshift({ ...c, ts: c.ts || Date.now() });
+          climbsWritten++;
+        }
+      });
+
+      localStorage.setItem("arty-workout-logs",   JSON.stringify(workoutLogs));
+      localStorage.setItem("arty-detailed-logs",  JSON.stringify(detailedLogs));
+      localStorage.setItem("arty-finisher-logs",  JSON.stringify(finisherLogs));
+      localStorage.setItem("arty-climb-logs",     JSON.stringify(climbLogs));
+
+      setStatus({ ok: true, msg: `Saved ${workoutsWritten} workout${workoutsWritten===1?"":"s"} + ${climbsWritten} climb${climbsWritten===1?"":"s"} to localStorage` });
+    } catch (e) {
+      setStatus({ ok: false, msg: "Save failed: " + e.message });
+    }
+  }
+
+  const canSave = (d1.done || d2.done || climbs.length > 0);
+
+  return (
+    <>
+      <div className="eyebrow">Historic Entry · Writes to same localStorage as tracker</div>
+      <div className="title">Backfill block {block} · week {week}</div>
+      <div className="subtitle">
+        Enter the workouts and climbs you already did. Data goes straight into your tracker's localStorage —
+        next time you open Arty-Moves, it'll be there.
+      </div>
+
+      <div className="hint-box">
+        <strong>Heads up:</strong> This page must be opened from the same folder as <code>Arty-Moves Hub.html</code>
+        (i.e. <code>G:\My Drive\Athletic Profile\Arty-Moves\</code>) so it shares localStorage with the real tracker.
+        If you opened it somewhere else, data will be saved to the wrong place.
+      </div>
+
+      <div className="ctx-row">
+        <div className="ctx-field">
+          <label>Phase</label>
+          <select value={phase} onChange={e => setPhase(e.target.value)}>
+            <option value="base">Base</option>
+          </select>
+        </div>
+        <div className="ctx-field">
+          <label>Block</label>
+          <select value={block} onChange={e => setBlock(parseInt(e.target.value))}>
+            {[1,2,3,4,5].map(b => <option key={b} value={b}>{b}</option>)}
+          </select>
+        </div>
+        <div className="ctx-field">
+          <label>Week</label>
+          <select value={week} onChange={e => setWeek(parseInt(e.target.value))}>
+            {[1,2,3,4].map(w => <option key={w} value={w}>{w} · {w===1?"Baseline":w===2?"+Reps":w===3?"Top Set":"Deload"}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <div className="section-label">Workouts</div>
+      <WorkoutEntry wkey="d1" config={BASE_D1} block={block} week={week} state={d1} onChange={setD1} />
+      <WorkoutEntry wkey="d2" config={BASE_D2} block={block} week={week} state={d2} onChange={setD2} />
+
+      <div className="section-label">Climbs</div>
+      {climbs.length === 0 && (
+        <div style={{ padding: "16px 0", color: "#48484e", fontSize: 11, textAlign: "center" }}>
+          No climbs added yet
+        </div>
+      )}
+      {climbs.map((c, i) => (
+        <ClimbRow
+          key={c.id}
+          climb={c}
+          onChange={climb => updateClimb(i, climb)}
+          onDelete={() => deleteClimb(i)}
+        />
+      ))}
+      <button className="add-climb" onClick={addClimb}>+ Add climb</button>
+
+      <div className="save-bar">
+        <button className="save-btn" disabled={!canSave} onClick={save}>
+          Save to localStorage
+        </button>
+        {status && (
+          <span className={`status ${status.ok ? "ok" : "err"}`}>
+            {status.ok ? "✓ " : "✗ "}{status.msg}
+          </span>
+        )}
+      </div>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("app")).render(<HistoricEntry />);
+</script>
+</body>
+</html>

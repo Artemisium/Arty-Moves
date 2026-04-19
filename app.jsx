@@ -810,9 +810,19 @@ function ArtyMovesApp() {
   const [activeWorkout, setActiveWorkout] = useState(null);
   const [finishers, setFinishers] = useState({});
   // logs[workoutKey][exerciseIdx][setIdx] = { reps, weight, logged }
-  const [logs, setLogs] = useState({});
+  const [logs, setLogs] = useState(() => {
+    try {
+      const raw = localStorage.getItem("arty-detailed-logs");
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) { return {}; }
+  });
   // finisherLogs[phase/block/week][workoutKey][finisherIdx][setIdx] = true
-  const [finisherLogs, setFinisherLogs] = useState({});
+  const [finisherLogs, setFinisherLogs] = useState(() => {
+    try {
+      const raw = localStorage.getItem("arty-finisher-logs");
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) { return {}; }
+  });
 
   // workoutLogs[YYYY-MM-DD] = { workoutKey, label, icon, colorKey, phase, block, week, loggedAt }
   const [workoutLogs, setWorkoutLogs] = useState(() => {
@@ -825,6 +835,14 @@ function ArtyMovesApp() {
   useEffect(() => {
     try { localStorage.setItem("arty-workout-logs", JSON.stringify(workoutLogs)); } catch (e) {}
   }, [workoutLogs]);
+
+  useEffect(() => {
+    try { localStorage.setItem("arty-detailed-logs", JSON.stringify(logs)); } catch (e) {}
+  }, [logs]);
+
+  useEffect(() => {
+    try { localStorage.setItem("arty-finisher-logs", JSON.stringify(finisherLogs)); } catch (e) {}
+  }, [finisherLogs]);
 
   function logWorkoutForDate(dateStr, workoutKey, meta) {
     setWorkoutLogs(prev => ({
