@@ -1,5 +1,6 @@
 // Arty-Moves app — browser-Babel version of workout-database.jsx
-// (import stripped; useState/useMemo pulled from window.React)
+// Wrapped in IIFE so it can coexist with Hub.html's own inline React code.
+(function () {
 const { useState, useMemo, useEffect } = React;
 
 // ────────────────────────────────────────
@@ -1217,3 +1218,4 @@ function ArtyMovesApp() {
 }
 
 window.ArtyMovesApp = ArtyMovesApp;
+})();

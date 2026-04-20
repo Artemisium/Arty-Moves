@@ -91,6 +91,9 @@
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 
+<script type="text/babel" src="muscle-map.jsx"></script>
+<script type="text/babel" src="app.jsx"></script>
+
 <script type="text/babel">
 const { useState, useMemo, useEffect, useRef } = React;
 
@@ -152,6 +155,7 @@ const WEEKLY_VOL = [
 ];
 
 const TABS = [
+  { id: "tracker",   label: "Workout Tracker",icon: "💪" },
   { id: "strength",  label: "Strength",      icon: "🏋️" },
   { id: "runs",      label: "Runs / Cardio", icon: "🏃" },
   { id: "weekly",    label: "Weekly Overview",icon: "📅" },
@@ -563,7 +567,7 @@ function ClimbingTracker() {
   );
 }
 
-function Strength() {
+function Strength({ onOpenTracker }) {
   const [subTab, setSubTab] = useState("workouts");
   return (
     <div className="fade">
@@ -572,10 +576,10 @@ function Strength() {
           <Eyebrow>Base Phase · Block 1 · 4-week microcycle</Eyebrow>
           <p style={space(18, C.text)}>Strength Program</p>
         </div>
-        <a href="Arty-Moves Preview.html" style={{
+        {onOpenTracker && <button onClick={onOpenTracker} style={{
           padding: "8px 16px", border: `1px solid ${C.accent}`, background: `${C.accent}15`,
-          textDecoration: "none", ...mono(10, C.accent, { letterSpacing: 1, textTransform: "uppercase" }),
-        }}>Open Workout Tracker →</a>
+          cursor: "pointer", ...mono(10, C.accent, { letterSpacing: 1, textTransform: "uppercase" }),
+        }}>Open Workout Tracker →</button>}
       </div>
       <div style={{ display:"flex", gap:4, marginBottom:20 }}>
         <Pill active={subTab==="workouts"} color={C.purple} onClick={() => setSubTab("workouts")}>Workouts</Pill>
@@ -1148,9 +1152,12 @@ function App() {
   const isMobile = useMobile();
   function switchTab(id) { setTab(id); localStorage.setItem("arty-hub-tab", id); }
 
+  const TrackerApp = window.ArtyMovesApp;
+
   const renderContent = () => {
+    if (tab === "tracker" && TrackerApp) return <TrackerApp />;
     if (tab === "weekly")   return <WeeklyOverview />;
-    if (tab === "strength") return <Strength />;
+    if (tab === "strength") return <Strength onOpenTracker={() => switchTab("tracker")} />;
     if (tab === "runs")     return <Runs />;
     if (tab === "analysis") return <Analysis />;
     if (tab === "rundev")   return <RunDev />;
@@ -1178,7 +1185,6 @@ function App() {
             ))}
           </div>
           <div className="top-bar-links" style={{ display: "flex", gap: 16, alignItems: "center", marginLeft: "auto" }}>
-            <a href="Arty-Moves Preview.html" style={{ ...mono(9, C.textDim, { letterSpacing: 1.5, textTransform: "uppercase", textDecoration: "none" }) }}>Tracker ↗</a>
             <a href="Muscle Coverage.html" style={{ ...mono(9, C.textDim, { letterSpacing: 1.5, textTransform: "uppercase", textDecoration: "none" }) }}>Analysis ↗</a>
           </div>
         </div>
